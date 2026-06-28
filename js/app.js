@@ -776,7 +776,7 @@ async function renderJournal() {
     <div class="section-label">Past entries</div>
     <div id="past-entries">
       ${pastEntries.length === 0
-        ? `<div class="empty-state"><i class="ti ti-feather icon" aria-hidden="true"></i>Nothing here yet — entries you save will show up here.</div>`
+        ? `<div class="empty-state">${ICONS.journal}<span style="margin-top:6px;font-size:13.5px;">Nothing here yet — entries you save will show up here.</span></div>`
         : pastEntries.map(e => {
             const mood = MOODS.find(m => m.key === e.mood);
             return `
