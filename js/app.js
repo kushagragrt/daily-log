@@ -132,12 +132,35 @@ function renderLogin() {
 // ============================================================
 // APP SHELL
 // ============================================================
+function getTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+function setTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    document.getElementById("theme-color-meta").setAttribute("content", "#161412");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    document.getElementById("theme-color-meta").setAttribute("content", "#FAF8F4");
+  }
+  localStorage.setItem("dl-theme", theme);
+  const icon = document.querySelector("#theme-toggle-btn i");
+  if (icon) icon.className = `ti ${theme === "dark" ? "ti-sun" : "ti-moon"}`;
+}
+function toggleTheme() { setTheme(getTheme() === "dark" ? "light" : "dark"); }
+
 function renderApp() {
   const root = document.getElementById("root");
+  const isDark = getTheme() === "dark";
   root.innerHTML = `
     <header class="app-header">
-      <p class="greeting" id="greeting"></p>
-      <p class="date" id="date-line"></p>
+      <div class="app-header-text">
+        <p class="greeting" id="greeting"></p>
+        <p class="date" id="date-line"></p>
+      </div>
+      <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle dark mode">
+        <i class="ti ${isDark ? "ti-sun" : "ti-moon"}" aria-hidden="true"></i>
+      </button>
     </header>
     <main class="app-main" id="main-content"></main>
     <button class="btn-fab hidden" id="fab"><i class="ti ti-plus" aria-hidden="true"></i></button>
@@ -150,6 +173,7 @@ function renderApp() {
 
   document.getElementById("greeting").textContent = `Hey, ${currentUser.name}`;
   document.getElementById("date-line").textContent = fmtDateLong();
+  document.getElementById("theme-toggle-btn").addEventListener("click", toggleTheme);
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));

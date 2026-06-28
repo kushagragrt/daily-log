@@ -4,7 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
 <title>Daily Log</title>
-<meta name="theme-color" content="#FAF8F4" />
+<meta name="theme-color" content="#FAF8F4" id="theme-color-meta" />
+<script>
+  // Apply saved theme before paint to avoid flash
+  (function() {
+    const t = localStorage.getItem("dl-theme");
+    if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+  })();
+</script>
 
 <!-- PWA: installable on phones via "Add to Home Screen" -->
 <link rel="manifest" href="manifest.json" />

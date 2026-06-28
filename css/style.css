@@ -8,13 +8,13 @@
   --ink-soft:  #6B6A64;
   --hairline:  #E5E2D8;
 
-  --moss:      #5B6B4F;  /* habits */
+  --moss:      #5B6B4F;
   --moss-bg:   #EEF1EA;
-  --clay:      #A6553C;  /* expenses */
+  --clay:      #A6553C;
   --clay-bg:   #F6EAE5;
-  --slate:     #3D5A6C;  /* workouts */
+  --slate:     #3D5A6C;
   --slate-bg:  #E8EEF1;
-  --ochre:     #9C7A3C;  /* mood / journal */
+  --ochre:     #9C7A3C;
   --ochre-bg:  #F5EEE2;
 
   --radius-card: 14px;
@@ -22,6 +22,23 @@
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg:        #161412;
+  --surface:   #1F1E1B;
+  --ink:       #EDE9E1;
+  --ink-soft:  #8A8880;
+  --hairline:  #2E2C28;
+
+  --moss:      #7EA86E;
+  --moss-bg:   #1E2B1A;
+  --clay:      #C97A5E;
+  --clay-bg:   #2B1A15;
+  --slate:     #6290A8;
+  --slate-bg:  #162028;
+  --ochre:     #C4A05A;
+  --ochre-bg:  #271F0E;
 }
 
 * { box-sizing: border-box; }
@@ -55,7 +72,11 @@ a { color: inherit; }
 
 .app-header {
   padding: 20px 18px 6px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
+.app-header-text { flex: 1; }
 .app-header .greeting {
   font-family: var(--font-display);
   font-size: 24px;
@@ -67,6 +88,22 @@ a { color: inherit; }
   color: var(--ink-soft);
   margin: 2px 0 0;
 }
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.theme-toggle:active { opacity: 0.7; }
 
 .app-main {
   flex: 1;
