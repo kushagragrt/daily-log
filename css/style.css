@@ -794,8 +794,246 @@ a { color: inherit; }
 .pin-box:focus { transform: scale(1.08); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .card:active { transform: scale(0.985); box-shadow: 0 1px 2px rgba(28,27,25,0.04); }
+  .card:active { transform: scale(0.985); }
 }
 @media (prefers-reduced-motion: reduce) {
   .card, .btn-fab, .sheet, .sheet-overlay { animation: none; transition: none; }
 }
+
+/* ============================================================
+   AWESOME FACTOR — glassmorphism, glows, gradients
+   ============================================================ */
+
+/* --- Richer dark palette --- */
+[data-theme="dark"] {
+  --bg:      #0C0B09;
+  --surface: #161410;
+  --hairline: #252320;
+  --moss:    #86B874;
+  --slate:   #6FA3BF;
+  --clay:    #D4856A;
+  --ochre:   #D4AA66;
+}
+
+/* --- Glass cards in dark mode --- */
+[data-theme="dark"] .card {
+  background: rgba(26, 23, 18, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.055);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+[data-theme="dark"] .card.accent-habit   { border-left-color: var(--moss); background: linear-gradient(135deg, rgba(26,23,18,0.8) 50%, rgba(30,43,26,0.6)); }
+[data-theme="dark"] .card.accent-workout { border-left-color: var(--slate); background: linear-gradient(135deg, rgba(26,23,18,0.8) 50%, rgba(22,32,40,0.6)); }
+[data-theme="dark"] .card.accent-expense { border-left-color: var(--clay);  background: linear-gradient(135deg, rgba(26,23,18,0.8) 50%, rgba(43,26,21,0.6)); }
+[data-theme="dark"] .card.accent-mood    { border-left-color: var(--ochre); background: linear-gradient(135deg, rgba(26,23,18,0.8) 50%, rgba(39,31,14,0.6)); }
+
+/* --- Glowing FAB --- */
+.btn-fab {
+  background: linear-gradient(135deg, #4a5e40, #6a9a58) !important;
+  box-shadow: 0 0 24px rgba(106,154,88,0.4), 0 4px 16px rgba(0,0,0,0.35) !important;
+}
+[data-theme="dark"] .btn-fab {
+  background: linear-gradient(135deg, #5B6B4F, #86B874) !important;
+  box-shadow: 0 0 36px rgba(134,184,116,0.5), 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.btn-fab:hover {
+  box-shadow: 0 0 44px rgba(106,154,88,0.65), 0 6px 24px rgba(0,0,0,0.4) !important;
+}
+
+/* --- Tab bar glass + glowing active --- */
+[data-theme="dark"] .tab-bar {
+  background: rgba(12,11,9,0.88);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.tab-btn { transition: color 0.2s; }
+.tab-btn svg { transition: filter 0.25s, transform 0.25s; }
+.tab-btn.active svg {
+  filter: drop-shadow(0 0 5px var(--moss));
+  transform: translateY(-1px);
+}
+.tab-btn span { font-size: 11px; }
+
+/* --- Header gradient fade --- */
+[data-theme="dark"] .app-header {
+  background: linear-gradient(180deg, rgba(12,11,9,0.98) 0%, rgba(12,11,9,0.7) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.app-header .greeting {
+  font-size: 30px !important;
+  background: linear-gradient(135deg, var(--ink) 0%, var(--ink-soft) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+[data-theme="dark"] .app-header .greeting {
+  background: linear-gradient(135deg, #F0EBE0 0%, #A0998E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- Glowing streak badge --- */
+.streak-badge {
+  animation: badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+[data-theme="dark"] .streak-badge {
+  background: rgba(134,184,116,0.15);
+  color: var(--moss);
+  border: 1px solid rgba(134,184,116,0.3);
+  box-shadow: 0 0 10px rgba(134,184,116,0.2);
+}
+@keyframes badgePop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* --- Mood picker glow on selected --- */
+.mood-opt { font-size: 26px; padding: 12px 4px; }
+.mood-opt.selected {
+  box-shadow: 0 0 0 2px var(--ochre), 0 4px 16px rgba(196,160,90,0.3);
+  transform: translateY(-2px);
+}
+[data-theme="dark"] .mood-opt {
+  background: rgba(30,28,22,0.6);
+  border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .mood-opt.selected {
+  background: rgba(39,31,14,0.8);
+  box-shadow: 0 0 0 2px var(--ochre), 0 0 20px rgba(212,170,102,0.35);
+}
+
+/* --- Section label with dot --- */
+.section-label::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--moss);
+  margin-right: 7px;
+  vertical-align: middle;
+  margin-bottom: 2px;
+}
+
+/* --- Stat tiles glow in dark --- */
+[data-theme="dark"] .stat-tile {
+  background: rgba(22,20,16,0.8);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(12px);
+}
+[data-theme="dark"] .stat-tile:hover {
+  border-color: rgba(134,184,116,0.3);
+  box-shadow: 0 8px 32px rgba(134,184,116,0.12), 0 0 0 1px rgba(134,184,116,0.2);
+}
+.stat-tile .num {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--ink-soft) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+[data-theme="dark"] .stat-tile .num {
+  background: linear-gradient(135deg, #F0EBE0 0%, var(--moss) 200%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- Primary button gradient --- */
+.btn-primary {
+  background: linear-gradient(135deg, #2a2720 0%, #1a1916 100%) !important;
+  letter-spacing: 0.02em;
+}
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(135deg, rgba(134,184,116,0.15) 0%, rgba(134,184,116,0.05) 100%) !important;
+  border: 1px solid rgba(134,184,116,0.3) !important;
+  color: var(--moss) !important;
+}
+[data-theme="dark"] .btn-primary:hover {
+  background: linear-gradient(135deg, rgba(134,184,116,0.25) 0%, rgba(134,184,116,0.1) 100%) !important;
+  box-shadow: 0 0 20px rgba(134,184,116,0.2);
+}
+
+/* --- Ghost button dark --- */
+[data-theme="dark"] .btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+  color: var(--ink);
+}
+[data-theme="dark"] .btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* --- Toast pill dark glow --- */
+[data-theme="dark"] .toast {
+  background: rgba(30,28,24,0.95);
+  border: 1px solid rgba(134,184,116,0.3);
+  box-shadow: 0 0 24px rgba(134,184,116,0.2), 0 8px 32px rgba(0,0,0,0.4);
+  color: var(--ink);
+}
+
+/* --- Sheet dark glass --- */
+[data-theme="dark"] .sheet {
+  background: rgba(18,16,13,0.96);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+}
+[data-theme="dark"] .sheet::before {
+  background: rgba(255,255,255,0.15);
+}
+
+/* --- Input dark --- */
+[data-theme="dark"] .field input,
+[data-theme="dark"] .field textarea,
+[data-theme="dark"] .field select {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: var(--ink);
+}
+[data-theme="dark"] .field input:focus,
+[data-theme="dark"] .field textarea:focus {
+  outline-color: var(--moss);
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(134,184,116,0.15);
+}
+
+/* --- Login screen dark polish --- */
+[data-theme="dark"] .login-card {
+  background: rgba(22,20,16,0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 24px;
+}
+[data-theme="dark"] .pin-box {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+}
+[data-theme="dark"] .pin-box:focus {
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(134,184,116,0.2);
+  background: rgba(134,184,116,0.08);
+}
+.login-screen h1 { font-size: 36px; letter-spacing: -0.5px; }
+[data-theme="dark"] .login-screen h1 {
+  background: linear-gradient(135deg, #F0EBE0, #86B874);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- Subtle bg texture in dark --- */
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(134,184,116,0.06) 0%, transparent 70%),
+              radial-gradient(ellipse 60% 40% at 80% 100%, rgba(111,163,191,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+[data-theme="dark"] #root { position: relative; z-index: 1; }
+
+/* --- Favicon fix: nothing needed, just suppressed --- */

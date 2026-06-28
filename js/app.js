@@ -157,6 +157,19 @@ function calcStreak(dates) {
   return streak;
 }
 
+// ---------- Inline SVG icons (no CDN dependency) ----------
+const ICONS = {
+  sun:     `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+  moon:    `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  today:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 12a5 5 0 1 0-10 0"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="4.22" y1="5.22" x2="6.34" y2="7.34"/><line x1="19.78" y1="5.22" x2="17.66" y2="7.34"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>`,
+  journal: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  stats:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="17" y="9" width="4" height="11" rx="1"/></svg>`,
+  logout:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+  check:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+  barbell: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M2 8h4M18 8h4M2 16h4M18 16h4M6 12h12"/></svg>`,
+  rupee:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="3" x2="18" y2="3"/><path d="M6 8h12M6 13l6 8M6 13h3a4 4 0 0 0 0-8"/></svg>`,
+};
+
 // ---------- Boot ----------
 window.addEventListener("DOMContentLoaded", async () => {
   const session = Auth.getSession();
@@ -264,8 +277,8 @@ function setTheme(theme) {
     document.getElementById("theme-color-meta").setAttribute("content", "#FAF8F4");
   }
   localStorage.setItem("dl-theme", theme);
-  const icon = document.querySelector("#theme-toggle-btn i");
-  if (icon) icon.className = `ti ${theme === "dark" ? "ti-sun" : "ti-moon"}`;
+  const btn = document.querySelector("#theme-toggle-btn");
+  if (btn) btn.innerHTML = theme === "dark" ? ICONS.sun : ICONS.moon;
 }
 function toggleTheme() { setTheme(getTheme() === "dark" ? "light" : "dark"); }
 
@@ -279,20 +292,20 @@ function renderApp() {
         <p class="date" id="date-line"></p>
       </div>
       <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle dark mode">
-        <i class="ti ${isDark ? "ti-sun" : "ti-moon"}" aria-hidden="true"></i>
+        ${isDark ? ICONS.sun : ICONS.moon}
       </button>
     </header>
     <main class="app-main" id="main-content"></main>
     <button class="btn-fab hidden" id="fab" aria-label="Add">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
         <line x1="11" y1="2" x2="11" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
         <line x1="2" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
     </button>
     <nav class="tab-bar">
-      <button class="tab-btn" data-tab="today"><i class="ti ti-sun-2" aria-hidden="true"></i>Today</button>
-      <button class="tab-btn" data-tab="journal"><i class="ti ti-feather" aria-hidden="true"></i>Journal</button>
-      <button class="tab-btn" data-tab="stats"><i class="ti ti-chart-bar" aria-hidden="true"></i>Stats</button>
+      <button class="tab-btn" data-tab="today">${ICONS.today}<span>Today</span></button>
+      <button class="tab-btn" data-tab="journal">${ICONS.journal}<span>Journal</span></button>
+      <button class="tab-btn" data-tab="stats">${ICONS.stats}<span>Stats</span></button>
     </nav>
   `;
 
@@ -459,9 +472,9 @@ function openAddSheet() {
     <div class="sheet">
       <p class="sheet-title">Add to today</p>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <button class="btn btn-ghost" data-kind="habit" style="flex:1;"><i class="ti ti-checkbox" aria-hidden="true"></i>&nbsp;Habit</button>
-        <button class="btn btn-ghost" data-kind="workout" style="flex:1;"><i class="ti ti-barbell" aria-hidden="true"></i>&nbsp;Workout</button>
-        <button class="btn btn-ghost" data-kind="expense" style="flex:1;"><i class="ti ti-currency-rupee" aria-hidden="true"></i>&nbsp;Expense</button>
+        <button class="btn btn-ghost" data-kind="habit" style="flex:1;">${ICONS.check}&nbsp;Habit</button>
+        <button class="btn btn-ghost" data-kind="workout" style="flex:1;">${ICONS.barbell}&nbsp;Workout</button>
+        <button class="btn btn-ghost" data-kind="expense" style="flex:1;">${ICONS.rupee}&nbsp;Expense</button>
       </div>
       <div id="sheet-form"></div>
     </div>
@@ -846,7 +859,7 @@ async function renderStats() {
     </div>
     <div class="section-label">Account</div>
     <button class="btn btn-ghost" id="logout-btn" style="width:100%;">
-      <i class="ti ti-logout" aria-hidden="true"></i>&nbsp;Switch person / log out
+      ${ICONS.logout}&nbsp;Switch person / log out
     </button>
   `;
 
