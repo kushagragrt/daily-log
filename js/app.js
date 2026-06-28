@@ -755,7 +755,7 @@ async function renderJournal() {
     Data.getJournalEntry(currentUser.id, today),
     Data.listJournalEntries(currentUser.id, 60),
   ]);
-  const pastEntries = (pastRes.data || []).filter(e => e.log_date !== today);
+  const pastEntries = pastRes.data || [];
 
   main.innerHTML = `
     <div class="section-label">Today</div>
@@ -773,16 +773,17 @@ async function renderJournal() {
       <p class="error-text hidden" id="journal-saved" style="color:var(--moss); margin:8px 0 0;">Saved</p>
     </div>
 
-    <div class="section-label">Past entries</div>
+    <div class="section-label">Your entries</div>
     <div id="past-entries">
       ${pastEntries.length === 0
         ? `<div class="empty-state">${ICONS.journal}<span style="margin-top:6px;font-size:13.5px;">Nothing here yet — entries you save will show up here.</span></div>`
         : pastEntries.map(e => {
             const mood = MOODS.find(m => m.key === e.mood);
+            const isToday = e.log_date === today;
             return `
               <div class="card accent-mood">
                 <div class="card-row">
-                  <span class="card-sub" style="font-size:12px;">${fmtDateShort(e.log_date)}</span>
+                  <span class="card-sub" style="font-size:12px;">${isToday ? "Today" : fmtDateShort(e.log_date)}</span>
                   <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
                 </div>
                 ${e.entry ? `<p style="font-size:14px; margin:8px 0 0; white-space:pre-wrap;">${escapeHtml(e.entry)}</p>` : ""}
@@ -835,19 +836,20 @@ async function renderJournal() {
     statusEl.classList.remove("hidden");
     vibrate([8, 40, 8]);
     showToast("📓 Entry saved");
-    // reload past entries list only (don't wipe the textarea)
+    // reload entries list (don't wipe the textarea)
     const pastRes = await Data.listJournalEntries(currentUser.id, 60);
-    const pastEntries = (pastRes.data || []).filter(e => e.log_date !== today);
+    const pastEntries = pastRes.data || [];
     const pastEl = document.getElementById("past-entries");
     if (pastEl) {
       pastEl.innerHTML = pastEntries.length === 0
         ? `<div class="empty-state">${ICONS.journal}<span style="margin-top:6px;font-size:13.5px;">Nothing here yet — entries you save will show up here.</span></div>`
         : pastEntries.map(e => {
             const mood = MOODS.find(m => m.key === e.mood);
+            const isToday = e.log_date === today;
             return `
               <div class="card accent-mood">
                 <div class="card-row">
-                  <span class="card-sub" style="font-size:12px;">${fmtDateShort(e.log_date)}</span>
+                  <span class="card-sub" style="font-size:12px;">${isToday ? "Today" : fmtDateShort(e.log_date)}</span>
                   <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
                 </div>
                 ${e.entry ? `<p style="font-size:14px; margin:8px 0 0; white-space:pre-wrap;">${escapeHtml(e.entry)}</p>` : ""}
