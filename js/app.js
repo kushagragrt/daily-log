@@ -73,6 +73,90 @@ function showToast(msg, duration = 1800) {
   }, duration);
 }
 
+// Haptic feedback
+function vibrate(pattern = [10]) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+// Confetti burst at a DOM element's position
+function spawnConfetti(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const colors = ["#7EA86E","#C97A5E","#6290A8","#C4A05A","#FFD700","#FF6B9D","#A78BFA"];
+  const particles = Array.from({ length: 55 }, () => ({
+    x: cx, y: cy,
+    vx: (Math.random() - 0.5) * 14,
+    vy: -(Math.random() * 12 + 4),
+    color: colors[Math.floor(Math.random() * colors.length)],
+    size: Math.random() * 7 + 3,
+    rotation: Math.random() * 360,
+    rotSpeed: (Math.random() - 0.5) * 14,
+    life: 1,
+    shape: Math.random() > 0.5 ? "rect" : "circle",
+  }));
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.45;
+      p.vx *= 0.98; p.rotation += p.rotSpeed; p.life -= 0.018;
+      if (p.life <= 0) continue;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = Math.min(p.life * 2, 1);
+      ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      if (p.shape === "circle") {
+        ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      }
+      ctx.restore();
+    }
+    if (alive) requestAnimationFrame(tick); else canvas.remove();
+  }
+  requestAnimationFrame(tick);
+}
+
+// Animate a number counter
+function animateCounter(el, target, prefix = "", suffix = "", duration = 900) {
+  const isFloat = !Number.isInteger(target);
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 4);
+    const val = target * ease;
+    el.textContent = prefix + (isFloat ? val.toFixed(1) : Math.round(val)) + suffix;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Consecutive day streak from sorted date strings
+function calcStreak(dates) {
+  if (!dates.length) return 0;
+  const sorted = [...dates].sort().reverse();
+  let streak = 0;
+  let check = new Date().toISOString().slice(0, 10);
+  for (const d of sorted) {
+    if (d === check) {
+      streak++;
+      const prev = new Date(check + "T00:00:00");
+      prev.setDate(prev.getDate() - 1);
+      check = prev.toISOString().slice(0, 10);
+    } else if (d < check) break;
+  }
+  return streak;
+}
+
 // ---------- Boot ----------
 window.addEventListener("DOMContentLoaded", async () => {
   const session = Auth.getSession();
@@ -223,12 +307,35 @@ function renderApp() {
   switchTab("today");
 }
 
+const TAB_ORDER = ["today", "journal", "stats"];
+let prevTabIdx = 0;
+
 function switchTab(tab) {
+  const newIdx = TAB_ORDER.indexOf(tab);
+  const direction = newIdx > prevTabIdx ? 1 : -1;
+  prevTabIdx = newIdx;
   activeTab = tab;
+
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  // sliding pill position
+  const bar = document.querySelector(".tab-bar");
+  if (bar) bar.style.setProperty("--pill-x", `${newIdx * 33.333}%`);
+
   const fab = document.getElementById("fab");
   fab.classList.remove("hidden");
   fab.onclick = null;
+
+  const main = document.getElementById("main-content");
+  if (main) {
+    main.style.transition = "none";
+    main.style.transform = `translateX(${-direction * 40}px)`;
+    main.style.opacity = "0";
+    requestAnimationFrame(() => {
+      main.style.transition = "transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.22s ease";
+      main.style.transform = "translateX(0)";
+      main.style.opacity = "1";
+    });
+  }
 
   if (tab === "today") { renderToday(); fab.onclick = openAddSheet; }
   else if (tab === "journal") { renderJournal(); fab.classList.add("hidden"); }
@@ -240,7 +347,7 @@ function switchTab(tab) {
 // ============================================================
 async function renderToday() {
   const main = document.getElementById("main-content");
-  main.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
+  main.innerHTML = `<div class="skeleton-wrap">${[1,2,3].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
 
   const feed = await Data.getTodayFeed(currentUser.id);
 
@@ -250,17 +357,29 @@ async function renderToday() {
   } else {
     for (const h of feed.habits) {
       const checked = feed.doneHabitIds.includes(h.id);
-      const streakDates = await Data.getHabitStreak(h.id, 14);
+      const streakDates = await Data.getHabitStreak(h.id, 30);
       const ratio = streakDates.length / 14;
+      const streak = calcStreak(streakDates);
+      const streakBadge = streak >= 2
+        ? `<span class="streak-badge">${streak >= 7 ? "🔥" : "⚡"} ${streak}d</span>`
+        : "";
       habitsHtml += `
-        <div class="card accent-habit" data-habit-id="${h.id}">
+        <div class="card accent-habit habit-card" data-habit-id="${h.id}">
           <div class="card-row">
-            <span class="card-title">${escapeHtml(h.name)}</span>
-            <button class="habit-check" data-habit-id="${h.id}" data-checked="${checked}"
-              aria-label="${checked ? 'Mark not done' : 'Mark done'}"
-              style="background:none; border:none; padding:0;">
-              <i class="ti ${checked ? 'ti-square-rounded-check-filled' : 'ti-square-rounded'}"
-                 style="font-size:24px; color:${checked ? 'var(--moss)' : 'var(--ink-soft)'};" aria-hidden="true"></i>
+            <div class="habit-info">
+              <span class="card-title">${escapeHtml(h.name)}</span>
+              ${streakBadge}
+            </div>
+            <button class="habit-check${checked ? " is-checked" : ""}" data-habit-id="${h.id}" data-checked="${checked}"
+              aria-label="${checked ? 'Mark not done' : 'Mark done'}">
+              <svg class="check-ring" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--hairline)" stroke-width="2.5"/>
+                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--moss)" stroke-width="2.5"
+                  stroke-dasharray="100.5" stroke-dashoffset="${checked ? 0 : 100.5}"
+                  stroke-linecap="round" transform="rotate(-90 18 18)"
+                  style="transition:stroke-dashoffset 0.5s cubic-bezier(0.34,1.56,0.64,1)"/>
+                ${checked ? `<path d="M11 18l5 5 9-9" stroke="var(--moss)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+              </svg>
             </button>
           </div>
           ${squiggleSvg(ratio, "var(--moss)")}
@@ -316,11 +435,17 @@ async function renderToday() {
       const habitId = btn.dataset.habitId;
       const wasChecked = btn.dataset.checked === "true";
       btn.disabled = true;
-      btn.style.transform = "scale(0.85)";
-      setTimeout(() => { btn.style.transform = ""; }, 150);
+      vibrate([8, 30, 8]);
+      // optimistic UI
+      btn.classList.toggle("is-checked", !wasChecked);
+      if (!wasChecked) {
+        spawnConfetti(btn);
+        showToast("✓ Habit done! Keep it up 🎯");
+        btn.style.transform = "scale(1.25)";
+        setTimeout(() => { btn.style.transform = "scale(1)"; btn.style.transition = "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)"; }, 10);
+      }
       await Data.toggleHabitToday({ id: habitId }, currentUser.id, wasChecked);
       btn.disabled = false;
-      if (!wasChecked) showToast("✓ Done!");
       renderToday();
     });
   });
@@ -600,7 +725,7 @@ function renderCardioForm(formWrap, overlay) {
 // ============================================================
 async function renderJournal() {
   const main = document.getElementById("main-content");
-  main.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
+  main.innerHTML = `<div class="skeleton-wrap">${[1,2].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
 
   const today = Data.todayStr();
   const [todayEntry, pastRes] = await Promise.all([
@@ -667,7 +792,7 @@ async function renderJournal() {
 // ============================================================
 async function renderStats() {
   const main = document.getElementById("main-content");
-  main.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
+  main.innerHTML = `<div class="skeleton-wrap">${[1,2].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
 
   const [habitsRes, workoutsRes, monthTotal] = await Promise.all([
     Data.listHabits(currentUser.id),
@@ -691,10 +816,10 @@ async function renderStats() {
   main.innerHTML = `
     <div class="section-label">Last 30 days</div>
     <div class="stat-grid">
-      <div class="stat-tile"><span class="num">${workoutsLast30}</span><span class="lbl">workouts</span></div>
-      <div class="stat-tile"><span class="num">₹${Math.round(monthTotal).toLocaleString()}</span><span class="lbl">spent this month</span></div>
-      <div class="stat-tile"><span class="num">${habits.length}</span><span class="lbl">active habits</span></div>
-      <div class="stat-tile"><span class="num">${avgPerHabit}</span><span class="lbl">avg check-ins/habit</span></div>
+      <div class="stat-tile"><span class="num" id="s-workouts">0</span><span class="lbl">workouts</span></div>
+      <div class="stat-tile"><span class="num" id="s-spend">₹0</span><span class="lbl">spent this month</span></div>
+      <div class="stat-tile"><span class="num" id="s-habits">0</span><span class="lbl">active habits</span></div>
+      <div class="stat-tile"><span class="num" id="s-avg">0</span><span class="lbl">avg check-ins/habit</span></div>
     </div>
     <div class="section-label">Reminders</div>
     <div class="card" style="border-left:none;">
@@ -740,6 +865,12 @@ async function renderStats() {
   document.getElementById("logout-btn").addEventListener("click", () => {
     if (confirm("Log out on this device?")) Auth.logout();
   });
+
+  // Animate counters
+  animateCounter(document.getElementById("s-workouts"), workoutsLast30);
+  animateCounter(document.getElementById("s-spend"), Math.round(monthTotal), "₹");
+  animateCounter(document.getElementById("s-habits"), habits.length);
+  animateCounter(document.getElementById("s-avg"), avgPerHabit);
 }
 
 // ---------- Reminder check on app open ----------
