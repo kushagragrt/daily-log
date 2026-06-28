@@ -70,15 +70,13 @@ function renderLogin() {
       <div class="login-card">
         <div class="field">
           <label for="login-name">Your name</label>
-          <input id="login-name" type="text" placeholder="e.g. Asha" autocomplete="name" />
+          <input id="login-name" type="text" placeholder="e.g. Darshi" autocomplete="name" />
         </div>
         <div class="field">
           <label>4-digit PIN</label>
-          <div class="pin-dots" id="pin-dots">
-            ${[0, 1, 2, 3].map(() => '<div class="pin-dot"></div>').join("")}
+          <div class="pin-boxes" id="pin-boxes">
+            ${[0, 1, 2, 3].map(i => `<input class="pin-box" id="pin-box-${i}" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" />`).join("")}
           </div>
-          <input id="login-pin" type="tel" inputmode="numeric" maxlength="4"
-            style="position:absolute; opacity:0; pointer-events:none;" />
         </div>
         <p class="error-text hidden" id="login-error"></p>
         <button class="btn btn-primary" id="login-btn">Continue</button>
@@ -89,19 +87,30 @@ function renderLogin() {
     </div>
   `;
 
-  const pinInput = document.getElementById("login-pin");
-  const dotsWrap = document.getElementById("pin-dots");
+  const pinBoxes = [0, 1, 2, 3].map(i => document.getElementById(`pin-box-${i}`));
   const nameInput = document.getElementById("login-name");
 
-  dotsWrap.addEventListener("click", () => pinInput.focus());
-  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") pinInput.focus(); });
+  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") pinBoxes[0].focus(); });
 
-  pinInput.addEventListener("input", () => {
-    pinInput.value = pinInput.value.replace(/\D/g, "").slice(0, 4);
-    [...dotsWrap.children].forEach((dot, i) => {
-      dot.classList.toggle("filled", i < pinInput.value.length);
+  function getPin() { return pinBoxes.map(b => b.value).join(""); }
+  function clearPin() { pinBoxes.forEach(b => (b.value = "")); pinBoxes[0].focus(); }
+
+  pinBoxes.forEach((box, i) => {
+    box.addEventListener("input", () => {
+      box.value = box.value.replace(/\D/g, "").slice(0, 1);
+      if (box.value && i < 3) pinBoxes[i + 1].focus();
+      if (getPin().length === 4) attemptLogin();
     });
-    if (pinInput.value.length === 4) attemptLogin();
+    box.addEventListener("keydown", e => {
+      if (e.key === "Backspace" && !box.value && i > 0) pinBoxes[i - 1].focus();
+    });
+    box.addEventListener("paste", e => {
+      e.preventDefault();
+      const digits = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 4).split("");
+      digits.forEach((d, j) => { if (pinBoxes[j]) pinBoxes[j].value = d; });
+      if (digits.length === 4) attemptLogin();
+      else if (pinBoxes[digits.length]) pinBoxes[digits.length].focus();
+    });
   });
 
   document.getElementById("login-btn").addEventListener("click", attemptLogin);
@@ -109,8 +118,9 @@ function renderLogin() {
   async function attemptLogin() {
     const errEl = document.getElementById("login-error");
     errEl.classList.add("hidden");
-    const name = nameInput.value;
-    const pin = pinInput.value;
+    const name = nameInput.value.trim();
+    const pin = getPin();
+    if (pin.length !== 4) return;
     const btn = document.getElementById("login-btn");
     btn.textContent = "Checking…";
     const res = await Auth.loginOrRegister(name, pin);
@@ -118,8 +128,7 @@ function renderLogin() {
     if (res.error) {
       errEl.textContent = res.error;
       errEl.classList.remove("hidden");
-      pinInput.value = "";
-      [...dotsWrap.children].forEach(d => d.classList.remove("filled"));
+      clearPin();
       return;
     }
     currentUser = res.user;

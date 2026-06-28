@@ -325,6 +325,9 @@ a { color: inherit; }
   justify-content: center;
   padding: 24px;
   text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
 }
 .login-screen h1 {
   font-family: var(--font-display);
@@ -341,19 +344,30 @@ a { color: inherit; }
   max-width: 320px;
   text-align: left;
 }
-.pin-dots {
+.pin-boxes {
   display: flex;
-  justify-content: center;
   gap: 10px;
-  margin: 10px 0 18px;
+  margin: 4px 0 0;
 }
-.pin-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
+.pin-box {
+  width: 52px;
+  height: 52px;
   border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  -moz-appearance: textfield;
 }
-.pin-dot.filled { background: var(--ink); border-color: var(--ink); }
+.pin-box::-webkit-outer-spin-button,
+.pin-box::-webkit-inner-spin-button { -webkit-appearance: none; }
+.pin-box:focus {
+  outline: 2px solid var(--moss);
+  outline-offset: 1px;
+  border-color: var(--moss);
+}
 .user-switcher {
   font-size: 13px;
   color: var(--ink-soft);
