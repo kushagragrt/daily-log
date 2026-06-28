@@ -1,6 +1,6 @@
 // Minimal service worker — caches the app shell so it opens instantly
 // and works even with a flaky connection. Data still needs network.
-const CACHE_NAME = "daily-log-v1";
+const CACHE_NAME = "daily-log-v5";
 const SHELL_FILES = [
   "./",
   "./index.html",
