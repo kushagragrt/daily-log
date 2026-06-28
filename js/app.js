@@ -781,9 +781,17 @@ async function renderJournal() {
     const entry = document.getElementById("journal-text").value.trim();
     const btn = document.getElementById("save-journal");
     btn.textContent = "Saving…";
-    await Data.upsertJournalEntry(currentUser.id, today, { mood: selectedMood, entry });
+    btn.disabled = true;
+    const { error } = await Data.upsertJournalEntry(currentUser.id, today, { mood: selectedMood, entry });
     btn.textContent = "Save entry";
+    btn.disabled = false;
+    if (error) {
+      showToast("❌ " + (error.message || "Could not save. Try again."));
+      console.error("Journal save error:", error);
+      return;
+    }
     showToast("📓 Entry saved");
+    renderJournal();
   });
 }
 
