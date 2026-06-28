@@ -158,10 +158,20 @@ const Data = (() => {
   }
 
   async function upsertJournalEntry(userId, date, { mood, entry }) {
-    return await sb.from("journal_entries").upsert({
-      user_id: userId, log_date: date, mood, entry,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id,log_date" }).select().single();
+    const { data: existing } = await sb
+      .from("journal_entries").select("id")
+      .eq("user_id", userId).eq("log_date", date).maybeSingle();
+
+    if (existing) {
+      return await sb.from("journal_entries")
+        .update({ mood, entry, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .select().single();
+    } else {
+      return await sb.from("journal_entries")
+        .insert({ user_id: userId, log_date: date, mood, entry })
+        .select().single();
+    }
   }
 
   async function listJournalEntries(userId, limit = 60) {
