@@ -85,9 +85,17 @@ alter table workouts enable row level security;
 alter table expenses enable row level security;
 alter table journal_entries enable row level security;
 
-create policy "allow all" on app_users for all using (true) with check (true);
-create policy "allow all" on habits for all using (true) with check (true);
-create policy "allow all" on habit_logs for all using (true) with check (true);
-create policy "allow all" on workouts for all using (true) with check (true);
-create policy "allow all" on expenses for all using (true) with check (true);
-create policy "allow all" on journal_entries for all using (true) with check (true);
+create policy "allow all" on app_users for all to anon using (true) with check (true);
+create policy "allow all" on habits for all to anon using (true) with check (true);
+create policy "allow all" on habit_logs for all to anon using (true) with check (true);
+create policy "allow all" on workouts for all to anon using (true) with check (true);
+create policy "allow all" on expenses for all to anon using (true) with check (true);
+create policy "allow all" on journal_entries for all to anon using (true) with check (true);
+
+-- Explicit grants (required when using anon key without Supabase Auth)
+grant select, insert, update, delete on app_users to anon;
+grant select, insert, update, delete on habits to anon;
+grant select, insert, update, delete on habit_logs to anon;
+grant select, insert, update, delete on workouts to anon;
+grant select, insert, update, delete on expenses to anon;
+grant select, insert, update, delete on journal_entries to anon;

@@ -803,18 +803,57 @@ async function renderJournal() {
   document.getElementById("save-journal").addEventListener("click", async () => {
     const entry = document.getElementById("journal-text").value.trim();
     const btn = document.getElementById("save-journal");
+    const statusEl = document.getElementById("journal-saved");
     btn.textContent = "Saving…";
     btn.disabled = true;
-    const { error } = await Data.upsertJournalEntry(currentUser.id, today, { mood: selectedMood, entry });
+    statusEl.classList.add("hidden");
+
+    const result = await Data.upsertJournalEntry(currentUser.id, today, { mood: selectedMood, entry });
+    const error = result?.error;
+    const data  = result?.data;
+
     btn.textContent = "Save entry";
     btn.disabled = false;
+
     if (error) {
-      showToast("❌ " + (error.message || "Could not save. Try again."));
+      statusEl.textContent = "❌ " + (error.message || "Could not save");
+      statusEl.style.color = "var(--clay)";
+      statusEl.classList.remove("hidden");
       console.error("Journal save error:", error);
       return;
     }
+
+    if (!data) {
+      statusEl.textContent = "⚠️ Saved but couldn't confirm — check Supabase Table Editor";
+      statusEl.style.color = "var(--ochre)";
+      statusEl.classList.remove("hidden");
+      return;
+    }
+
+    statusEl.textContent = "✓ Saved";
+    statusEl.style.color = "var(--moss)";
+    statusEl.classList.remove("hidden");
+    vibrate([8, 40, 8]);
     showToast("📓 Entry saved");
-    renderJournal();
+    // reload past entries list only (don't wipe the textarea)
+    const pastRes = await Data.listJournalEntries(currentUser.id, 60);
+    const pastEntries = (pastRes.data || []).filter(e => e.log_date !== today);
+    const pastEl = document.getElementById("past-entries");
+    if (pastEl) {
+      pastEl.innerHTML = pastEntries.length === 0
+        ? `<div class="empty-state">${ICONS.journal}<span style="margin-top:6px;font-size:13.5px;">Nothing here yet — entries you save will show up here.</span></div>`
+        : pastEntries.map(e => {
+            const mood = MOODS.find(m => m.key === e.mood);
+            return `
+              <div class="card accent-mood">
+                <div class="card-row">
+                  <span class="card-sub" style="font-size:12px;">${fmtDateShort(e.log_date)}</span>
+                  <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
+                </div>
+                ${e.entry ? `<p style="font-size:14px; margin:8px 0 0; white-space:pre-wrap;">${escapeHtml(e.entry)}</p>` : ""}
+              </div>`;
+          }).join("");
+    }
   });
 }
 
