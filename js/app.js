@@ -47,6 +47,22 @@ function squiggleSvg(checkedRatio, colorVar) {
     </svg>`;
 }
 
+// ---------- Toast ----------
+function showToast(msg, duration = 1800) {
+  const existing = document.getElementById("toast");
+  if (existing) existing.remove();
+  const t = document.createElement("div");
+  t.id = "toast";
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add("toast-show"));
+  setTimeout(() => {
+    t.classList.remove("toast-show");
+    t.addEventListener("transitionend", () => t.remove(), { once: true });
+  }, duration);
+}
+
 // ---------- Boot ----------
 window.addEventListener("DOMContentLoaded", async () => {
   const session = Auth.getSession();
@@ -172,7 +188,12 @@ function renderApp() {
       </button>
     </header>
     <main class="app-main" id="main-content"></main>
-    <button class="btn-fab hidden" id="fab"><i class="ti ti-plus" aria-hidden="true"></i></button>
+    <button class="btn-fab hidden" id="fab" aria-label="Add">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <line x1="11" y1="2" x2="11" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="2" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </button>
     <nav class="tab-bar">
       <button class="tab-btn" data-tab="today"><i class="ti ti-sun-2" aria-hidden="true"></i>Today</button>
       <button class="tab-btn" data-tab="journal"><i class="ti ti-feather" aria-hidden="true"></i>Journal</button>
@@ -214,7 +235,7 @@ async function renderToday() {
 
   let habitsHtml = "";
   if (feed.habits.length === 0) {
-    habitsHtml = `<p style="font-size:13px; color:var(--ink-soft); margin:4px 2px 12px;">No habits yet — tap + to add one.</p>`;
+    habitsHtml = `<div class="empty-state"><i class="ti ti-checkbox icon" aria-hidden="true"></i>No habits yet — tap + to add one.</div>`;
   } else {
     for (const h of feed.habits) {
       const checked = feed.doneHabitIds.includes(h.id);
@@ -276,8 +297,11 @@ async function renderToday() {
       const habitId = btn.dataset.habitId;
       const wasChecked = btn.dataset.checked === "true";
       btn.disabled = true;
+      btn.style.transform = "scale(0.85)";
+      setTimeout(() => { btn.style.transform = ""; }, 150);
       await Data.toggleHabitToday({ id: habitId }, currentUser.id, wasChecked);
       btn.disabled = false;
+      if (!wasChecked) showToast("✓ Done!");
       renderToday();
     });
   });
@@ -424,10 +448,11 @@ async function renderJournal() {
 
   document.getElementById("save-journal").addEventListener("click", async () => {
     const entry = document.getElementById("journal-text").value.trim();
+    const btn = document.getElementById("save-journal");
+    btn.textContent = "Saving…";
     await Data.upsertJournalEntry(currentUser.id, today, { mood: selectedMood, entry });
-    const savedMsg = document.getElementById("journal-saved");
-    savedMsg.classList.remove("hidden");
-    setTimeout(() => savedMsg.classList.add("hidden"), 1800);
+    btn.textContent = "Save entry";
+    showToast("📓 Entry saved");
   });
 }
 
