@@ -781,10 +781,13 @@ async function renderJournal() {
             const mood = MOODS.find(m => m.key === e.mood);
             const isToday = e.log_date === today;
             return `
-              <div class="card accent-mood">
+              <div class="card accent-mood" data-entry-id="${e.id}">
                 <div class="card-row">
                   <span class="card-sub" style="font-size:12px;">${isToday ? "Today" : fmtDateShort(e.log_date)}</span>
-                  <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
+                    <button class="entry-delete-btn" data-id="${e.id}" title="Delete entry" style="background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:16px;padding:2px 4px;line-height:1;">×</button>
+                  </div>
                 </div>
                 ${e.entry ? `<p style="font-size:14px; margin:8px 0 0; white-space:pre-wrap;">${escapeHtml(e.entry)}</p>` : ""}
               </div>`;
@@ -792,6 +795,14 @@ async function renderJournal() {
       }
     </div>
   `;
+
+  main.querySelectorAll(".entry-delete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this entry?")) return;
+      await Data.deleteJournalEntry(btn.dataset.id);
+      renderJournal();
+    });
+  });
 
   let selectedMood = todayEntry?.mood || null;
   document.querySelectorAll(".mood-opt").forEach(btn => {
@@ -836,6 +847,10 @@ async function renderJournal() {
     statusEl.classList.remove("hidden");
     vibrate([8, 40, 8]);
     showToast("📓 Entry saved");
+    // clear the write area
+    document.getElementById("journal-text").value = "";
+    selectedMood = null;
+    document.querySelectorAll(".mood-opt").forEach(b => b.classList.remove("selected"));
     // reload entries list (don't wipe the textarea)
     const pastRes = await Data.listJournalEntries(currentUser.id, 60);
     const pastEntries = pastRes.data || [];
@@ -847,14 +862,26 @@ async function renderJournal() {
             const mood = MOODS.find(m => m.key === e.mood);
             const isToday = e.log_date === today;
             return `
-              <div class="card accent-mood">
+              <div class="card accent-mood" data-entry-id="${e.id}">
                 <div class="card-row">
                   <span class="card-sub" style="font-size:12px;">${isToday ? "Today" : fmtDateShort(e.log_date)}</span>
-                  <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:18px;">${mood ? mood.emoji : ""}</span>
+                    <button class="entry-delete-btn" data-id="${e.id}" title="Delete entry" style="background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:16px;padding:2px 4px;line-height:1;">×</button>
+                  </div>
                 </div>
                 ${e.entry ? `<p style="font-size:14px; margin:8px 0 0; white-space:pre-wrap;">${escapeHtml(e.entry)}</p>` : ""}
               </div>`;
           }).join("");
+      if (pastEl) {
+        pastEl.querySelectorAll(".entry-delete-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Delete this entry?")) return;
+            await Data.deleteJournalEntry(btn.dataset.id);
+            renderJournal();
+          });
+        });
+      }
     }
   });
 }

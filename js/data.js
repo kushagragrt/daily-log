@@ -174,6 +174,10 @@ const Data = (() => {
     }
   }
 
+  async function deleteJournalEntry(id) {
+    return await sb.from("journal_entries").delete().eq("id", id);
+  }
+
   async function listJournalEntries(userId, limit = 60) {
     const { data, error } = await sb
       .from("journal_entries")
@@ -207,7 +211,7 @@ const Data = (() => {
     listWorkouts, addWorkout, deleteWorkout,
     listExercises, saveExercise, addWorkoutExercises, getWorkoutExercises,
     listExpenses, addExpense, deleteExpense, expensesTotalThisMonth,
-    getJournalEntry, upsertJournalEntry, listJournalEntries,
+    getJournalEntry, upsertJournalEntry, deleteJournalEntry, listJournalEntries,
     getTodayFeed,
   };
 })();
