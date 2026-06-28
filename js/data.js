@@ -70,11 +70,41 @@ const Data = (() => {
     return { data: data || [], error };
   }
 
-  async function addWorkout(userId, { title, duration_min, notes, log_date }) {
+  async function addWorkout(userId, { title, duration_min, notes, log_date, type, distance_km }) {
     return await sb.from("workouts").insert({
-      user_id: userId, title, duration_min: duration_min || null,
-      notes: notes || null, log_date: log_date || todayStr(),
+      user_id: userId, title,
+      duration_min: duration_min || null,
+      notes: notes || null,
+      log_date: log_date || todayStr(),
+      type: type || "strength",
+      distance_km: distance_km || null,
     }).select().single();
+  }
+
+  // ---------- Exercise library ----------
+  async function listExercises(userId) {
+    const { data } = await sb.from("exercises").select("*")
+      .eq("user_id", userId).order("muscle_group").order("name");
+    return data || [];
+  }
+
+  async function saveExercise(userId, name, muscle_group) {
+    return await sb.from("exercises")
+      .upsert({ user_id: userId, name, muscle_group }, { onConflict: "user_id,name" });
+  }
+
+  // ---------- Workout exercises ----------
+  async function addWorkoutExercises(workoutId, exerciseRows) {
+    if (!exerciseRows.length) return;
+    return await sb.from("workout_exercises").insert(
+      exerciseRows.map((e, i) => ({ workout_id: workoutId, ...e, sort_order: i }))
+    );
+  }
+
+  async function getWorkoutExercises(workoutId) {
+    const { data } = await sb.from("workout_exercises").select("*")
+      .eq("workout_id", workoutId).order("sort_order");
+    return data || [];
   }
 
   async function deleteWorkout(id) {
@@ -165,6 +195,7 @@ const Data = (() => {
     todayStr,
     listHabits, createHabit, archiveHabit, getHabitLogsForDate, getHabitStreak, toggleHabitToday,
     listWorkouts, addWorkout, deleteWorkout,
+    listExercises, saveExercise, addWorkoutExercises, getWorkoutExercises,
     listExpenses, addExpense, deleteExpense, expensesTotalThisMonth,
     getJournalEntry, upsertJournalEntry, listJournalEntries,
     getTodayFeed,

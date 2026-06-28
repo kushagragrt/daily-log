@@ -15,6 +15,16 @@ const MOODS = [
 
 const HABIT_COLORS = ["moss", "slate", "ochre", "clay"];
 
+const MUSCLE_GROUPS = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Core","Full Body"];
+const CARDIO_TYPES = [
+  { key:"run",   label:"Run",   emoji:"🏃" },
+  { key:"cycle", label:"Cycle", emoji:"🚴" },
+  { key:"walk",  label:"Walk",  emoji:"🚶" },
+  { key:"swim",  label:"Swim",  emoji:"🏊" },
+  { key:"hiit",  label:"HIIT",  emoji:"⚡" },
+  { key:"other", label:"Other", emoji:"🏅" },
+];
+
 function fmtDateLong(d = new Date()) {
   return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 }
@@ -72,6 +82,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   } else {
     renderLogin();
   }
+  setTimeout(checkReminder, 2000);
 });
 
 // ============================================================
@@ -258,17 +269,25 @@ async function renderToday() {
   }
 
   let workoutsHtml = feed.recentWorkouts.length
-    ? feed.recentWorkouts.map(w => `
+    ? feed.recentWorkouts.map(w => {
+        const isCardio = w.type === "cardio";
+        const sub = [
+          isCardio ? "Cardio" : "Strength",
+          w.duration_min ? `${w.duration_min} min` : null,
+          w.distance_km  ? `${w.distance_km} km`  : null,
+        ].filter(Boolean).join(" · ");
+        return `
         <div class="card accent-workout">
           <div class="card-row">
             <div>
               <div class="card-title">${escapeHtml(w.title)}</div>
-              ${w.duration_min ? `<div class="card-sub">${w.duration_min} min</div>` : ""}
+              <div class="card-sub">${sub}</div>
             </div>
-            <span class="card-tag tag-workout">workout</span>
+            <span class="card-tag tag-workout">${isCardio ? "🏃" : "🏋️"}</span>
           </div>
-        </div>`).join("")
-    : `<p style="font-size:13px; color:var(--ink-soft); margin:4px 2px 12px;">Nothing logged today.</p>`;
+        </div>`;
+      }).join("")
+    : `<div class="empty-state"><i class="ti ti-barbell icon" aria-hidden="true"></i>Nothing logged today.</div>`;
 
   let expensesHtml = feed.recentExpenses.length
     ? feed.recentExpenses.map(e => `
@@ -349,20 +368,7 @@ function renderSheetForm(kind, overlay) {
   }
 
   if (kind === "workout") {
-    formWrap.innerHTML = `
-      <div class="field"><label for="w-title">What did you do</label>
-        <input id="w-title" placeholder="e.g. Push day" /></div>
-      <div class="field"><label for="w-dur">Duration (minutes)</label>
-        <input id="w-dur" type="number" inputmode="numeric" placeholder="45" /></div>
-      <button class="btn btn-primary" id="save-workout">Log workout</button>`;
-    formWrap.querySelector("#save-workout").addEventListener("click", async () => {
-      const title = document.getElementById("w-title").value.trim();
-      if (!title) return;
-      const duration_min = parseInt(document.getElementById("w-dur").value) || null;
-      await Data.addWorkout(currentUser.id, { title, duration_min });
-      overlay.remove();
-      renderToday();
-    });
+    openWorkoutSheet(formWrap, overlay);
   }
 
   if (kind === "expense") {
@@ -387,6 +393,206 @@ function renderSheetForm(kind, overlay) {
       renderToday();
     });
   }
+}
+
+// ============================================================
+// WORKOUT SHEET — strength + cardio logger
+// ============================================================
+function openWorkoutSheet(formWrap, overlay) {
+  formWrap.innerHTML = `
+    <p style="font-size:13px; color:var(--ink-soft); margin:0 0 12px;">What kind of session?</p>
+    <div class="wtype-grid">
+      <button class="wtype-btn" data-type="strength">
+        <span class="wtype-emoji">🏋️</span>
+        <strong>Strength</strong>
+        <span>Exercises, sets & reps</span>
+      </button>
+      <button class="wtype-btn" data-type="cardio">
+        <span class="wtype-emoji">🏃</span>
+        <strong>Cardio</strong>
+        <span>Run, cycle, swim…</span>
+      </button>
+    </div>`;
+
+  formWrap.querySelectorAll(".wtype-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.type === "strength") renderStrengthForm(formWrap, overlay);
+      else renderCardioForm(formWrap, overlay);
+    });
+  });
+}
+
+async function renderStrengthForm(formWrap, overlay) {
+  const library = await Data.listExercises(currentUser.id);
+  const exercises = [];
+  let selectedGroup = null;
+  let currentSets = [];
+
+  function libraryForGroup(g) {
+    return library.filter(e => e.muscle_group === g).map(e => e.name);
+  }
+
+  function setsTableHtml(sets) {
+    if (!sets.length) return `<p class="sets-empty">No sets yet — tap "Add set".</p>`;
+    return `<table class="sets-table">
+      <thead><tr><th>Set</th><th>Reps</th><th>kg</th><th></th></tr></thead>
+      <tbody>${sets.map((s, i) => `<tr>
+        <td class="set-num">${i + 1}</td>
+        <td><input class="set-input" data-field="reps" data-idx="${i}" type="number" inputmode="numeric" value="${s.reps || ""}" placeholder="10" min="1" /></td>
+        <td><input class="set-input" data-field="weight" data-idx="${i}" type="number" inputmode="decimal" value="${s.weight || ""}" placeholder="0" min="0" step="0.5" /></td>
+        <td><button class="set-remove" data-idx="${i}">×</button></td>
+      </tr>`).join("")}</tbody>
+    </table>`;
+  }
+
+  function exerciseChipsHtml() {
+    if (!exercises.length) return "";
+    return `<div class="ex-chips">${exercises.map((e, i) => `
+      <div class="ex-chip">
+        <span class="ex-chip-group">${e.muscle_group}</span>
+        <span class="ex-chip-name">${escapeHtml(e.name)}</span>
+        <span class="ex-chip-sets">${e.sets.length} set${e.sets.length !== 1 ? "s" : ""}</span>
+        <button class="ex-chip-remove" data-idx="${i}">×</button>
+      </div>`).join("")}
+    </div>`;
+  }
+
+  function syncSets() {
+    formWrap.querySelectorAll(".set-input").forEach(inp => {
+      const idx = parseInt(inp.dataset.idx);
+      if (!currentSets[idx]) return;
+      currentSets[idx][inp.dataset.field] = inp.value;
+    });
+  }
+
+  function bindSetControls() {
+    formWrap.querySelectorAll(".set-input").forEach(inp => inp.addEventListener("input", syncSets));
+    formWrap.querySelectorAll(".set-remove").forEach(btn => {
+      btn.addEventListener("click", () => {
+        syncSets();
+        currentSets.splice(parseInt(btn.dataset.idx), 1);
+        formWrap.querySelector("#sets-wrap").innerHTML = setsTableHtml(currentSets);
+        bindSetControls();
+      });
+    });
+  }
+
+  function render() {
+    const suggestions = selectedGroup ? libraryForGroup(selectedGroup) : [];
+    formWrap.innerHTML = `
+      <div class="field">
+        <label for="w-session">Session name</label>
+        <input id="w-session" placeholder="e.g. Push Day, Leg Day" />
+      </div>
+      ${exerciseChipsHtml()}
+      <div class="section-label" style="margin-top:${exercises.length ? 16 : 4}px;">Add exercise</div>
+      <div class="mg-chips">${MUSCLE_GROUPS.map(g =>
+        `<button class="mg-chip${g === selectedGroup ? " active" : ""}" data-g="${g}">${g}</button>`
+      ).join("")}</div>
+      <div class="field" style="margin-top:10px;">
+        <label for="w-exname">Exercise name</label>
+        <input id="w-exname" placeholder="${selectedGroup ? (suggestions[0] || "e.g. Bench Press") : "Pick a muscle group first"}"
+          list="ex-dl" ${!selectedGroup ? "disabled" : ""} autocomplete="off" />
+        <datalist id="ex-dl">${suggestions.map(s => `<option value="${escapeHtml(s)}">`).join("")}</datalist>
+      </div>
+      <div id="sets-wrap" style="${!selectedGroup ? "display:none" : ""}">${setsTableHtml(currentSets)}</div>
+      <div style="display:flex; gap:8px; margin-top:8px; ${!selectedGroup ? "display:none" : ""}">
+        <button class="btn btn-ghost" id="add-set-btn" style="flex:1;" ${!selectedGroup ? "disabled" : ""}>+ Add set</button>
+        <button class="btn btn-ghost" id="add-ex-btn" style="flex:1;" ${!selectedGroup ? "disabled" : ""}>Add exercise →</button>
+      </div>
+      <button class="btn btn-primary" id="save-strength-btn" style="margin-top:16px; ${!exercises.length ? "opacity:0.45;" : ""}" ${!exercises.length ? "disabled" : ""}>
+        Log ${exercises.length || ""} exercise${exercises.length !== 1 ? "s" : ""}
+      </button>`;
+
+    formWrap.querySelectorAll(".mg-chip").forEach(c => {
+      c.addEventListener("click", () => { syncSets(); selectedGroup = c.dataset.g; render(); });
+    });
+    formWrap.querySelectorAll(".ex-chip-remove").forEach(b => {
+      b.addEventListener("click", () => { exercises.splice(parseInt(b.dataset.idx), 1); render(); });
+    });
+
+    const addSetBtn = formWrap.querySelector("#add-set-btn");
+    if (addSetBtn) addSetBtn.addEventListener("click", () => {
+      syncSets();
+      currentSets.push({ reps: "", weight: "" });
+      formWrap.querySelector("#sets-wrap").innerHTML = setsTableHtml(currentSets);
+      bindSetControls();
+    });
+
+    const addExBtn = formWrap.querySelector("#add-ex-btn");
+    if (addExBtn) addExBtn.addEventListener("click", () => {
+      const nameInput = formWrap.querySelector("#w-exname");
+      const name = nameInput?.value.trim();
+      if (!name) { nameInput?.focus(); return; }
+      syncSets();
+      exercises.push({ name, muscle_group: selectedGroup, sets: currentSets.filter(s => s.reps) });
+      Data.saveExercise(currentUser.id, name, selectedGroup);
+      currentSets = [];
+      selectedGroup = null;
+      render();
+    });
+
+    const saveBtn = formWrap.querySelector("#save-strength-btn");
+    if (saveBtn && exercises.length) {
+      saveBtn.addEventListener("click", async () => {
+        const title = formWrap.querySelector("#w-session").value.trim() || "Strength";
+        saveBtn.textContent = "Saving…"; saveBtn.disabled = true;
+        const { data: w } = await Data.addWorkout(currentUser.id, { title, type: "strength" });
+        if (w) await Data.addWorkoutExercises(w.id, exercises.map((e, i) => ({
+          exercise_name: e.name, muscle_group: e.muscle_group, sets: e.sets, sort_order: i,
+        })));
+        overlay.remove();
+        showToast("💪 Workout logged!");
+        renderToday();
+      });
+    }
+
+    bindSetControls();
+  }
+
+  render();
+}
+
+function renderCardioForm(formWrap, overlay) {
+  let selectedType = "run";
+  formWrap.innerHTML = `
+    <div class="cardio-grid">${CARDIO_TYPES.map(t =>
+      `<button class="cardio-btn${t.key === "run" ? " active" : ""}" data-key="${t.key}">
+        <span>${t.emoji}</span><span>${t.label}</span>
+      </button>`).join("")}
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="c-dur">Duration (minutes)</label>
+      <input id="c-dur" type="number" inputmode="numeric" placeholder="30" min="1" />
+    </div>
+    <div class="field">
+      <label for="c-dist">Distance (km) — optional</label>
+      <input id="c-dist" type="number" inputmode="decimal" placeholder="5.0" step="0.1" min="0" />
+    </div>
+    <div class="field">
+      <label for="c-notes">Notes — optional</label>
+      <input id="c-notes" placeholder="e.g. Morning park run" />
+    </div>
+    <button class="btn btn-primary" id="save-cardio-btn">Log cardio</button>`;
+
+  formWrap.querySelectorAll(".cardio-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedType = btn.dataset.key;
+      formWrap.querySelectorAll(".cardio-btn").forEach(b => b.classList.toggle("active", b === btn));
+    });
+  });
+
+  formWrap.querySelector("#save-cardio-btn").addEventListener("click", async () => {
+    const duration_min = parseInt(formWrap.querySelector("#c-dur").value) || null;
+    const distance_km  = parseFloat(formWrap.querySelector("#c-dist").value) || null;
+    const notes        = formWrap.querySelector("#c-notes").value.trim();
+    const typeLabel    = CARDIO_TYPES.find(t => t.key === selectedType)?.label || "Cardio";
+    const title        = distance_km ? `${distance_km}km ${typeLabel}` : typeLabel;
+    await Data.addWorkout(currentUser.id, { title, duration_min, notes, type: "cardio", distance_km });
+    overlay.remove();
+    showToast("🏃 Cardio logged!");
+    renderToday();
+  });
 }
 
 // ============================================================
@@ -490,13 +696,63 @@ async function renderStats() {
       <div class="stat-tile"><span class="num">${habits.length}</span><span class="lbl">active habits</span></div>
       <div class="stat-tile"><span class="num">${avgPerHabit}</span><span class="lbl">avg check-ins/habit</span></div>
     </div>
+    <div class="section-label">Reminders</div>
+    <div class="card" style="border-left:none;">
+      <p style="font-size:13px; color:var(--ink-soft); margin:0 0 12px;">Get a daily nudge to log your day.</p>
+      <div class="field" style="margin-bottom:10px;">
+        <label for="reminder-time">Reminder time</label>
+        <input id="reminder-time" type="time" value="${localStorage.getItem('dl-reminder-time') || '20:00'}" />
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" id="save-reminder-btn" style="flex:1;">Set reminder</button>
+        <button class="btn btn-ghost" id="clear-reminder-btn" style="flex:1;">Clear</button>
+      </div>
+      <p id="reminder-status" style="font-size:12px; color:var(--ink-soft); margin:8px 0 0; text-align:center;">
+        ${localStorage.getItem('dl-reminder-time') ? `Active — ${localStorage.getItem('dl-reminder-time')} daily` : "No reminder set"}
+      </p>
+    </div>
     <div class="section-label">Account</div>
     <button class="btn btn-ghost" id="logout-btn" style="width:100%;">
       <i class="ti ti-logout" aria-hidden="true"></i>&nbsp;Switch person / log out
     </button>
   `;
 
+  document.getElementById("save-reminder-btn").addEventListener("click", async () => {
+    const time = document.getElementById("reminder-time").value;
+    if (!time) return;
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      showToast("Allow notifications in browser settings");
+      return;
+    }
+    localStorage.setItem("dl-reminder-time", time);
+    document.getElementById("reminder-status").textContent = `Active — ${time} daily`;
+    showToast("🔔 Reminder set for " + time);
+  });
+
+  document.getElementById("clear-reminder-btn").addEventListener("click", () => {
+    localStorage.removeItem("dl-reminder-time");
+    localStorage.removeItem("dl-reminder-shown");
+    document.getElementById("reminder-status").textContent = "No reminder set";
+    showToast("Reminder cleared");
+  });
+
   document.getElementById("logout-btn").addEventListener("click", () => {
     if (confirm("Log out on this device?")) Auth.logout();
   });
+}
+
+// ---------- Reminder check on app open ----------
+function checkReminder() {
+  const time = localStorage.getItem("dl-reminder-time");
+  if (!time || Notification.permission !== "granted") return;
+  const today = new Date().toISOString().slice(0, 10);
+  const shownKey = "dl-reminder-shown";
+  if (localStorage.getItem(shownKey) === today) return;
+  const [rh, rm] = time.split(":").map(Number);
+  const now = new Date();
+  if (now.getHours() > rh || (now.getHours() === rh && now.getMinutes() >= rm)) {
+    new Notification("Daily Log", { body: "Time to log your day! 📓", icon: "/daily-log/icons/icon-192.png" });
+    localStorage.setItem(shownKey, today);
+  }
 }

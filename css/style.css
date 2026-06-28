@@ -519,6 +519,167 @@ a { color: inherit; }
 }
 .habit-check:active { transform: scale(0.82) !important; }
 
+/* ---------- Workout type picker ---------- */
+.wtype-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.wtype-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.wtype-btn:hover { border-color: var(--slate); transform: translateY(-2px); }
+.wtype-btn:active { transform: scale(0.97); }
+.wtype-btn strong { font-size: 15px; color: var(--ink); }
+.wtype-btn span:last-child { font-size: 11.5px; color: var(--ink-soft); }
+.wtype-emoji { font-size: 32px; line-height: 1; margin-bottom: 4px; }
+
+/* ---------- Muscle group chips ---------- */
+.mg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.mg-chip {
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mg-chip:hover { border-color: var(--slate); color: var(--slate); }
+.mg-chip.active {
+  background: var(--slate-bg);
+  border-color: var(--slate);
+  color: var(--slate);
+  font-weight: 500;
+}
+
+/* ---------- Sets table ---------- */
+.sets-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+}
+.sets-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  padding: 4px 4px 6px;
+}
+.sets-table td { padding: 4px; }
+.set-num {
+  color: var(--ink-soft);
+  font-size: 12px;
+  width: 28px;
+  text-align: center;
+}
+.sets-table input {
+  width: 100%;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  text-align: center;
+}
+.sets-table input:focus { outline: 2px solid var(--slate); outline-offset: 1px; }
+.set-remove {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 18px;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.set-remove:hover { opacity: 1; color: var(--clay); }
+.sets-empty {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 6px 0 4px;
+}
+
+/* ---------- Added exercise chips ---------- */
+.ex-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ex-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--slate-bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.ex-chip-group {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.ex-chip-name { flex: 1; font-weight: 500; color: var(--ink); }
+.ex-chip-sets { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+.ex-chip-remove {
+  background: none; border: none;
+  color: var(--ink-soft); font-size: 16px;
+  cursor: pointer; padding: 0 2px;
+  opacity: 0.6;
+}
+.ex-chip-remove:hover { opacity: 1; color: var(--clay); }
+
+/* ---------- Cardio type grid ---------- */
+.cardio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cardio-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-ctl);
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cardio-btn span:first-child { font-size: 24px; }
+.cardio-btn:hover { border-color: var(--moss); color: var(--moss); }
+.cardio-btn.active {
+  background: var(--moss-bg);
+  border-color: var(--moss);
+  color: var(--moss);
+  font-weight: 500;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .card:active { transform: scale(0.985); box-shadow: 0 1px 2px rgba(28,27,25,0.04); }
 }
