@@ -1036,4 +1036,52 @@ a { color: inherit; }
 }
 [data-theme="dark"] #root { position: relative; z-index: 1; }
 
-/* --- Favicon fix: nothing needed, just suppressed --- */
+/* --- Tappable empty state --- */
+.empty-state-tap {
+  width: 100%;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1.5px dashed var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-family: inherit;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  animation: fadeSlideUp 0.25s ease both;
+}
+.empty-state-tap svg { opacity: 0.5; margin-bottom: 2px; width: 28px; height: 28px; }
+.empty-state-tap span { font-weight: 500; color: var(--ink-soft); }
+.empty-add-hint {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--moss) !important;
+}
+.empty-state-tap:hover {
+  border-color: var(--moss);
+  background: var(--moss-bg);
+  transform: translateY(-2px);
+}
+.empty-state-tap:active { transform: scale(0.98); }
+[data-theme="dark"] .empty-state-tap:hover {
+  background: rgba(134,184,116,0.08);
+  border-color: var(--moss);
+  box-shadow: 0 0 20px rgba(134,184,116,0.12);
+}
+
+/* --- Active kind button in sheet --- */
+.kind-active {
+  background: var(--moss-bg) !important;
+  border-color: var(--moss) !important;
+  color: var(--moss) !important;
+}
+[data-theme="dark"] .kind-active {
+  background: rgba(134,184,116,0.12) !important;
+  border-color: var(--moss) !important;
+  color: var(--moss) !important;
+}

@@ -366,7 +366,7 @@ async function renderToday() {
 
   let habitsHtml = "";
   if (feed.habits.length === 0) {
-    habitsHtml = `<div class="empty-state"><i class="ti ti-checkbox icon" aria-hidden="true"></i>No habits yet — tap + to add one.</div>`;
+    habitsHtml = `<button class="empty-state empty-state-tap" data-add="habit">${ICONS.check}<span>No habits yet</span><span class="empty-add-hint">Tap to add your first habit →</span></button>`;
   } else {
     for (const h of feed.habits) {
       const checked = feed.doneHabitIds.includes(h.id);
@@ -419,7 +419,7 @@ async function renderToday() {
           </div>
         </div>`;
       }).join("")
-    : `<div class="empty-state"><i class="ti ti-barbell icon" aria-hidden="true"></i>Nothing logged today.</div>`;
+    : `<button class="empty-state empty-state-tap" data-add="workout">${ICONS.barbell}<span>No workouts yet today</span><span class="empty-add-hint">Tap to log a workout →</span></button>`;
 
   let expensesHtml = feed.recentExpenses.length
     ? feed.recentExpenses.map(e => `
@@ -432,7 +432,7 @@ async function renderToday() {
             <span class="card-tag tag-expense">₹${Number(e.amount).toLocaleString()}</span>
           </div>
         </div>`).join("")
-    : `<p style="font-size:13px; color:var(--ink-soft); margin:4px 2px 12px;">Nothing logged today.</p>`;
+    : `<button class="empty-state empty-state-tap" data-add="expense">${ICONS.rupee}<span>No expenses today</span><span class="empty-add-hint">Tap to log an expense →</span></button>`;
 
   main.innerHTML = `
     <div class="section-label">Habits</div>
@@ -442,6 +442,10 @@ async function renderToday() {
     <div class="section-label">Expenses today</div>
     ${expensesHtml}
   `;
+
+  main.querySelectorAll(".empty-state-tap").forEach(btn => {
+    btn.addEventListener("click", () => openAddSheet(btn.dataset.add));
+  });
 
   main.querySelectorAll(".habit-check").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -465,16 +469,16 @@ async function renderToday() {
 }
 
 // ---------- Add sheet (habit / workout / expense) ----------
-function openAddSheet() {
+function openAddSheet(preselect = null) {
   const overlay = document.createElement("div");
   overlay.className = "sheet-overlay";
   overlay.innerHTML = `
     <div class="sheet">
       <p class="sheet-title">Add to today</p>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <button class="btn btn-ghost" data-kind="habit" style="flex:1;">${ICONS.check}&nbsp;Habit</button>
-        <button class="btn btn-ghost" data-kind="workout" style="flex:1;">${ICONS.barbell}&nbsp;Workout</button>
-        <button class="btn btn-ghost" data-kind="expense" style="flex:1;">${ICONS.rupee}&nbsp;Expense</button>
+        <button class="btn btn-ghost kind-btn${preselect === "habit" ? " kind-active" : ""}" data-kind="habit" style="flex:1;">${ICONS.check}&nbsp;Habit</button>
+        <button class="btn btn-ghost kind-btn${preselect === "workout" ? " kind-active" : ""}" data-kind="workout" style="flex:1;">${ICONS.barbell}&nbsp;Workout</button>
+        <button class="btn btn-ghost kind-btn${preselect === "expense" ? " kind-active" : ""}" data-kind="expense" style="flex:1;">${ICONS.rupee}&nbsp;Expense</button>
       </div>
       <div id="sheet-form"></div>
     </div>
@@ -482,9 +486,15 @@ function openAddSheet() {
   document.body.appendChild(overlay);
   overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
 
-  overlay.querySelectorAll("[data-kind]").forEach(btn => {
-    btn.addEventListener("click", () => renderSheetForm(btn.dataset.kind, overlay));
+  overlay.querySelectorAll(".kind-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      overlay.querySelectorAll(".kind-btn").forEach(b => b.classList.remove("kind-active"));
+      btn.classList.add("kind-active");
+      renderSheetForm(btn.dataset.kind, overlay);
+    });
   });
+
+  if (preselect) renderSheetForm(preselect, overlay);
 }
 
 function renderSheetForm(kind, overlay) {
