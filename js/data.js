@@ -188,6 +188,51 @@ const Data = (() => {
     return { data: data || [], error };
   }
 
+  // ---------- Stats / charts ----------
+  async function getMoodTimeline(userId, days = 7) {
+    const since = new Date();
+    since.setDate(since.getDate() - days + 1);
+    const { data } = await sb.from("journal_entries")
+      .select("log_date, mood")
+      .eq("user_id", userId)
+      .gte("log_date", since.toISOString().slice(0, 10))
+      .order("log_date");
+    return data || [];
+  }
+
+  async function getMuscleGroupStats(userId, days = 7) {
+    const since = new Date();
+    since.setDate(since.getDate() - days + 1);
+    const { data: workouts } = await sb.from("workouts")
+      .select("id").eq("user_id", userId)
+      .gte("log_date", since.toISOString().slice(0, 10));
+    if (!workouts?.length) return [];
+    const ids = workouts.map(w => w.id);
+    const { data: exs } = await sb.from("workout_exercises")
+      .select("muscle_group, sets").in("workout_id", ids);
+    const groups = {};
+    for (const ex of exs || []) {
+      const g = ex.muscle_group || "Other";
+      const n = Array.isArray(ex.sets) ? ex.sets.filter(s => s.reps).length : 1;
+      groups[g] = (groups[g] || 0) + (n || 1);
+    }
+    return Object.entries(groups)
+      .map(([group, sets]) => ({ group, sets }))
+      .sort((a, b) => b.sets - a.sets);
+  }
+
+  async function getExpensesByCategory(userId) {
+    const start = new Date(); start.setDate(1);
+    const { data } = await sb.from("expenses")
+      .select("category, amount").eq("user_id", userId)
+      .gte("log_date", start.toISOString().slice(0, 10));
+    const cats = {};
+    for (const e of data || []) cats[e.category] = (cats[e.category] || 0) + Number(e.amount);
+    return Object.entries(cats)
+      .map(([category, amount]) => ({ category, amount: Math.round(amount) }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
   // ---------- Combined "today" feed ----------
   async function getTodayFeed(userId) {
     const date = todayStr();
@@ -212,6 +257,7 @@ const Data = (() => {
     listExercises, saveExercise, addWorkoutExercises, getWorkoutExercises,
     listExpenses, addExpense, deleteExpense, expensesTotalThisMonth,
     getJournalEntry, upsertJournalEntry, deleteJournalEntry, listJournalEntries,
+    getMoodTimeline, getMuscleGroupStats, getExpensesByCategory,
     getTodayFeed,
   };
 })();

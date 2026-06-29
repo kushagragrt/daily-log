@@ -25,6 +25,15 @@ const CARDIO_TYPES = [
   { key:"other", label:"Other", emoji:"🏅" },
 ];
 
+function timeGreeting() {
+  const h = new Date().getHours();
+  if (h < 5)  return ["Good night",      "🌙"];
+  if (h < 12) return ["Good morning",    "☀️"];
+  if (h < 17) return ["Good afternoon",  "🌤️"];
+  if (h < 21) return ["Good evening",    "🌆"];
+  return       ["Good night",            "🌙"];
+}
+
 function fmtDateLong(d = new Date()) {
   return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 }
@@ -194,7 +203,7 @@ function renderLogin() {
       <div class="login-card">
         <div class="field">
           <label for="login-name">Your name</label>
-          <input id="login-name" type="text" placeholder="e.g. Darshi" autocomplete="name" />
+          <input id="login-name" type="text" placeholder="e.g. John Doe" autocomplete="name" />
         </div>
         <div class="field">
           <label>4-digit PIN</label>
@@ -309,7 +318,8 @@ function renderApp() {
     </nav>
   `;
 
-  document.getElementById("greeting").textContent = `Hey, ${currentUser.name}`;
+  const [greetWord, greetEmoji] = timeGreeting();
+  document.getElementById("greeting").textContent = `${greetWord}, ${currentUser.name} ${greetEmoji}`;
   document.getElementById("date-line").textContent = fmtDateLong();
   document.getElementById("theme-toggle-btn").addEventListener("click", toggleTheme);
 
@@ -887,52 +897,140 @@ async function renderJournal() {
 }
 
 // ============================================================
+// CHART HELPERS
+// ============================================================
+function barChart(items, labelKey, valueKey, color = "var(--moss)", unit = "") {
+  if (!items.length) return `<p class="chart-empty">No data yet</p>`;
+  const max = Math.max(...items.map(i => i[valueKey]), 1);
+  return `<div class="chart-bars">${items.map(item => `
+    <div class="chart-row">
+      <span class="chart-label">${escapeHtml(String(item[labelKey]))}</span>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="width:${Math.round(item[valueKey]/max*100)}%;background:${color};"></div>
+      </div>
+      <span class="chart-val">${item[valueKey]}${unit}</span>
+    </div>`).join("")}</div>`;
+}
+
+function moodTimeline(entries) {
+  const days = 7;
+  const todayD = new Date();
+  return `<div class="mood-timeline">${Array.from({ length: days }, (_, i) => {
+    const d = new Date(todayD);
+    d.setDate(todayD.getDate() - (days - 1 - i));
+    const str = d.toISOString().slice(0, 10);
+    const entry = entries.find(e => e.log_date === str);
+    const m = MOODS.find(m => m.key === entry?.mood);
+    const label = i === days - 1 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" });
+    return `<div class="mood-day${m ? " has-mood" : ""}">
+      <span class="mood-day-emoji">${m ? m.emoji : "·"}</span>
+      <span class="mood-day-label">${label}</span>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function habitHeatmap(logDates, days = 35) {
+  const todayD = new Date();
+  const dateSet = new Set(logDates);
+  return `<div class="heatmap">${Array.from({ length: days }, (_, i) => {
+    const d = new Date(todayD);
+    d.setDate(todayD.getDate() - (days - 1 - i));
+    const str = d.toISOString().slice(0, 10);
+    return `<div class="heatmap-cell${dateSet.has(str) ? " filled" : ""}" title="${str}"></div>`;
+  }).join("")}</div>`;
+}
+
+// ============================================================
 // STATS TAB — simple summary
 // ============================================================
 async function renderStats() {
   const main = document.getElementById("main-content");
-  main.innerHTML = `<div class="skeleton-wrap">${[1,2].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
+  main.innerHTML = `<div class="skeleton-wrap">${[1,2,3,4].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
 
-  const [habitsRes, workoutsRes, monthTotal] = await Promise.all([
+  const [habitsRes, workoutsRes, monthTotal, moodEntries, muscleStats, expenseCats] = await Promise.all([
     Data.listHabits(currentUser.id),
-    Data.listWorkouts(currentUser.id, 100),
+    Data.listWorkouts(currentUser.id, 200),
     Data.expensesTotalThisMonth(currentUser.id),
+    Data.getMoodTimeline(currentUser.id, 7),
+    Data.getMuscleGroupStats(currentUser.id, 7),
+    Data.getExpensesByCategory(currentUser.id),
   ]);
 
   const habits = habitsRes.data;
-  let totalChecks = 0;
-  for (const h of habits) {
-    const dates = await Data.getHabitStreak(h.id, 30);
-    totalChecks += dates.length;
-  }
-  const avgPerHabit = habits.length ? Math.round((totalChecks / habits.length) * 10) / 10 : 0;
+  const habitStreakData = await Promise.all(habits.map(h => Data.getHabitStreak(h.id, 35)));
+  const totalChecks = habitStreakData.reduce((sum, d) => sum + d.length, 0);
+  const avgPerHabit = habits.length ? (totalChecks / habits.length).toFixed(1) : 0;
 
-  const workoutsLast30 = workoutsRes.data.filter(w => {
-    const d = new Date(w.log_date);
-    return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24) <= 30;
-  }).length;
+  const now = Date.now();
+  const workoutsLast30 = workoutsRes.data.filter(w => (now - new Date(w.log_date).getTime()) / 86400000 <= 30).length;
+  const workoutsThisWeek = workoutsRes.data.filter(w => (now - new Date(w.log_date).getTime()) / 86400000 <= 7).length;
+
+  // Weekly workout frequency (last 8 weeks)
+  const weekBuckets = Array.from({ length: 8 }, (_, i) => {
+    const wEnd = new Date(); wEnd.setDate(wEnd.getDate() - i * 7);
+    const wStart = new Date(wEnd); wStart.setDate(wEnd.getDate() - 6);
+    const label = i === 0 ? "This wk" : `${wStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    const count = workoutsRes.data.filter(w => {
+      const d = new Date(w.log_date + "T00:00:00");
+      return d >= wStart && d <= wEnd;
+    }).length;
+    return { label, count };
+  }).reverse();
+
+  const reminderTime = localStorage.getItem("dl-reminder-time");
 
   main.innerHTML = `
-    <div class="section-label">Last 30 days</div>
+    <div class="section-label">Overview</div>
     <div class="stat-grid">
-      <div class="stat-tile"><span class="num" id="s-workouts">0</span><span class="lbl">workouts</span></div>
+      <div class="stat-tile"><span class="num" id="s-workouts">0</span><span class="lbl">workouts (30d)</span></div>
       <div class="stat-tile"><span class="num" id="s-spend">₹0</span><span class="lbl">spent this month</span></div>
       <div class="stat-tile"><span class="num" id="s-habits">0</span><span class="lbl">active habits</span></div>
       <div class="stat-tile"><span class="num" id="s-avg">0</span><span class="lbl">avg check-ins/habit</span></div>
     </div>
+
+    <div class="section-label">Mood this week</div>
+    <div class="card" style="border-left:none; padding:16px 12px 12px;">
+      ${moodTimeline(moodEntries)}
+    </div>
+
+    <div class="section-label">Workouts per week</div>
+    <div class="card" style="border-left:none; padding:16px;">
+      ${barChart(weekBuckets, "label", "count", "var(--slate)", "")}
+    </div>
+
+    ${muscleStats.length ? `
+    <div class="section-label">Muscle groups this week</div>
+    <div class="card" style="border-left:none; padding:16px;">
+      ${barChart(muscleStats, "group", "sets", "var(--moss)", " sets")}
+    </div>` : ""}
+
+    ${expenseCats.length ? `
+    <div class="section-label">Spending this month</div>
+    <div class="card" style="border-left:none; padding:16px;">
+      ${barChart(expenseCats.map(e => ({ ...e, amount: Math.round(e.amount) })), "category", "amount", "var(--ochre)", "")}
+    </div>` : ""}
+
+    ${habits.length ? `
+    <div class="section-label">Habit consistency (last 5 weeks)</div>
+    ${habits.map((h, i) => `
+      <div class="card" style="border-left:3px solid var(--moss); padding:12px 14px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:8px;">${escapeHtml(h.name)}</div>
+        ${habitHeatmap(habitStreakData[i], 35)}
+      </div>`).join("")}` : ""}
+
     <div class="section-label">Reminders</div>
     <div class="card" style="border-left:none;">
       <p style="font-size:13px; color:var(--ink-soft); margin:0 0 12px;">Get a daily nudge to log your day.</p>
       <div class="field" style="margin-bottom:10px;">
         <label for="reminder-time">Reminder time</label>
-        <input id="reminder-time" type="time" value="${localStorage.getItem('dl-reminder-time') || '20:00'}" />
+        <input id="reminder-time" type="time" value="${reminderTime || "20:00"}" />
       </div>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-primary" id="save-reminder-btn" style="flex:1;">Set reminder</button>
         <button class="btn btn-ghost" id="clear-reminder-btn" style="flex:1;">Clear</button>
       </div>
       <p id="reminder-status" style="font-size:12px; color:var(--ink-soft); margin:8px 0 0; text-align:center;">
-        ${localStorage.getItem('dl-reminder-time') ? `Active — ${localStorage.getItem('dl-reminder-time')} daily` : "No reminder set"}
+        ${reminderTime ? `Active — ${reminderTime} daily` : "No reminder set"}
       </p>
     </div>
     <div class="section-label">Account</div>
@@ -945,31 +1043,25 @@ async function renderStats() {
     const time = document.getElementById("reminder-time").value;
     if (!time) return;
     const perm = await Notification.requestPermission();
-    if (perm !== "granted") {
-      showToast("Allow notifications in browser settings");
-      return;
-    }
+    if (perm !== "granted") { showToast("Allow notifications in browser settings"); return; }
     localStorage.setItem("dl-reminder-time", time);
     document.getElementById("reminder-status").textContent = `Active — ${time} daily`;
     showToast("🔔 Reminder set for " + time);
   });
-
   document.getElementById("clear-reminder-btn").addEventListener("click", () => {
     localStorage.removeItem("dl-reminder-time");
     localStorage.removeItem("dl-reminder-shown");
     document.getElementById("reminder-status").textContent = "No reminder set";
     showToast("Reminder cleared");
   });
-
   document.getElementById("logout-btn").addEventListener("click", () => {
     if (confirm("Log out on this device?")) Auth.logout();
   });
 
-  // Animate counters
   animateCounter(document.getElementById("s-workouts"), workoutsLast30);
   animateCounter(document.getElementById("s-spend"), Math.round(monthTotal), "₹");
   animateCounter(document.getElementById("s-habits"), habits.length);
-  animateCounter(document.getElementById("s-avg"), avgPerHabit);
+  animateCounter(document.getElementById("s-avg"), parseFloat(avgPerHabit));
 }
 
 // ---------- Reminder check on app open ----------

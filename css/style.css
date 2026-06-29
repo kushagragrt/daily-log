@@ -1085,3 +1085,29 @@ a { color: inherit; }
   border-color: var(--moss) !important;
   color: var(--moss) !important;
 }
+
+/* ============================================================
+   CHARTS & STATS
+   ============================================================ */
+
+/* Horizontal bar chart */
+.chart-bars { display: flex; flex-direction: column; gap: 8px; }
+.chart-row { display: flex; align-items: center; gap: 8px; }
+.chart-label { font-size: 12px; color: var(--ink-soft); width: 90px; flex-shrink: 0; text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-bar-wrap { flex: 1; background: var(--hairline); border-radius: 4px; height: 10px; overflow: hidden; }
+.chart-bar { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); min-width: 4px; }
+.chart-val { font-size: 12px; font-weight: 500; color: var(--ink); width: 52px; text-align: right; flex-shrink: 0; }
+.chart-empty { font-size: 13px; color: var(--ink-soft); margin: 0; }
+
+/* Mood timeline */
+.mood-timeline { display: flex; justify-content: space-between; gap: 4px; }
+.mood-day { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.mood-day-emoji { font-size: 22px; line-height: 1; }
+.mood-day-label { font-size: 10px; color: var(--ink-soft); }
+.mood-day.has-mood .mood-day-label { color: var(--ink); font-weight: 500; }
+
+/* Habit heatmap */
+.heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.heatmap-cell { aspect-ratio: 1; border-radius: 3px; background: var(--hairline); }
+.heatmap-cell.filled { background: var(--moss); }
+[data-theme="dark"] .heatmap-cell.filled { background: var(--moss); opacity: 0.85; }
