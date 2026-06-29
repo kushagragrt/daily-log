@@ -65,6 +65,15 @@ create table if not exists journal_entries (
   unique (user_id, log_date)
 );
 
+-- To-do items
+create table if not exists todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references app_users(id) on delete cascade,
+  text text not null,
+  completed boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 -- Helpful indexes for the queries the app makes most
 create index if not exists idx_habit_logs_user_date on habit_logs(user_id, log_date);
 create index if not exists idx_workouts_user_date on workouts(user_id, log_date);
@@ -91,6 +100,8 @@ create policy "allow all" on habit_logs for all to anon using (true) with check 
 create policy "allow all" on workouts for all to anon using (true) with check (true);
 create policy "allow all" on expenses for all to anon using (true) with check (true);
 create policy "allow all" on journal_entries for all to anon using (true) with check (true);
+alter table todos enable row level security;
+create policy "allow all" on todos for all to anon using (true) with check (true);
 
 -- Explicit grants (required when using anon key without Supabase Auth)
 grant select, insert, update, delete on app_users to anon;
@@ -99,3 +110,4 @@ grant select, insert, update, delete on habit_logs to anon;
 grant select, insert, update, delete on workouts to anon;
 grant select, insert, update, delete on expenses to anon;
 grant select, insert, update, delete on journal_entries to anon;
+grant select, insert, update, delete on todos to anon;

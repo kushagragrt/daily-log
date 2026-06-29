@@ -188,6 +188,22 @@ const Data = (() => {
     return { data: data || [], error };
   }
 
+  // ---------- To-dos ----------
+  async function listTodos(userId) {
+    const { data } = await sb.from("todos").select("*")
+      .eq("user_id", userId).order("created_at", { ascending: true });
+    return data || [];
+  }
+  async function addTodo(userId, text) {
+    return await sb.from("todos").insert({ user_id: userId, text }).select().single();
+  }
+  async function toggleTodo(id, completed) {
+    return await sb.from("todos").update({ completed }).eq("id", id);
+  }
+  async function deleteTodo(id) {
+    return await sb.from("todos").delete().eq("id", id);
+  }
+
   // ---------- Stats / charts ----------
   async function getMoodTimeline(userId, days = 7) {
     const since = new Date();
@@ -257,6 +273,7 @@ const Data = (() => {
     listExercises, saveExercise, addWorkoutExercises, getWorkoutExercises,
     listExpenses, addExpense, deleteExpense, expensesTotalThisMonth,
     getJournalEntry, upsertJournalEntry, deleteJournalEntry, listJournalEntries,
+    listTodos, addTodo, toggleTodo, deleteTodo,
     getMoodTimeline, getMuscleGroupStats, getExpensesByCategory,
     getTodayFeed,
   };

@@ -15,7 +15,7 @@ const MOODS = [
 
 const HABIT_COLORS = ["moss", "slate", "ochre", "clay"];
 
-const MUSCLE_GROUPS = ["Chest","Back","Shoulders","Biceps","Triceps","Legs","Core","Full Body"];
+const MUSCLE_GROUPS = ["Chest","Back","Shoulders","Biceps","Triceps","Forearms","Legs","Core","Full Body"];
 const CARDIO_TYPES = [
   { key:"run",   label:"Run",   emoji:"🏃" },
   { key:"cycle", label:"Cycle", emoji:"🚴" },
@@ -177,6 +177,7 @@ const ICONS = {
   check:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
   barbell: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M2 8h4M18 8h4M2 16h4M18 16h4M6 12h12"/></svg>`,
   rupee:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="3" x2="18" y2="3"/><path d="M6 8h12M6 13l6 8M6 13h3a4 4 0 0 0 0-8"/></svg>`,
+  tasks:   `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/><circle cx="6" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="16" r="1" fill="currentColor" stroke="none"/></svg>`,
 };
 
 // ---------- Boot ----------
@@ -314,6 +315,7 @@ function renderApp() {
     <nav class="tab-bar">
       <button class="tab-btn" data-tab="today">${ICONS.today}<span>Today</span></button>
       <button class="tab-btn" data-tab="journal">${ICONS.journal}<span>Journal</span></button>
+      <button class="tab-btn" data-tab="tasks">${ICONS.tasks}<span>Tasks</span></button>
       <button class="tab-btn" data-tab="stats">${ICONS.stats}<span>Stats</span></button>
     </nav>
   `;
@@ -330,7 +332,7 @@ function renderApp() {
   switchTab("today");
 }
 
-const TAB_ORDER = ["today", "journal", "stats"];
+const TAB_ORDER = ["today", "journal", "tasks", "stats"];
 let prevTabIdx = 0;
 
 function switchTab(tab) {
@@ -342,7 +344,7 @@ function switchTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   // sliding pill position
   const bar = document.querySelector(".tab-bar");
-  if (bar) bar.style.setProperty("--pill-x", `${newIdx * 33.333}%`);
+  if (bar) bar.style.setProperty("--pill-x", `${newIdx * 25}%`);
 
   const fab = document.getElementById("fab");
   fab.classList.remove("hidden");
@@ -362,6 +364,7 @@ function switchTab(tab) {
 
   if (tab === "today") { renderToday(); fab.onclick = openAddSheet; }
   else if (tab === "journal") { renderJournal(); fab.classList.add("hidden"); }
+  else if (tab === "tasks") { renderTasks(); fab.classList.add("hidden"); }
   else if (tab === "stats") { renderStats(); fab.classList.add("hidden"); }
 }
 
@@ -372,7 +375,24 @@ async function renderToday() {
   const main = document.getElementById("main-content");
   main.innerHTML = `<div class="skeleton-wrap">${[1,2,3].map(() => `<div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>`).join("")}</div>`;
 
-  const feed = await Data.getTodayFeed(currentUser.id);
+  const today = Data.todayStr();
+  const [feed, todayJournal] = await Promise.all([
+    Data.getTodayFeed(currentUser.id),
+    Data.getJournalEntry(currentUser.id, today),
+  ]);
+
+  // Activity rings
+  const habitsTotal = feed.habits.length;
+  const habitsDone  = feed.habits.filter(h => feed.doneHabitIds.includes(h.id)).length;
+  const habitPct    = habitsTotal ? habitsDone / habitsTotal : 0;
+  const workoutPct  = feed.recentWorkouts.length > 0 ? 1 : 0;
+  const journalPct  = todayJournal ? 1 : 0;
+  const ringsHtml = `
+    <div class="activity-rings-row">
+      ${activityRing(habitPct,   "var(--moss)",  "Habits",  `${habitsDone}/${habitsTotal}`)}
+      ${activityRing(workoutPct, "var(--slate)", "Workout", workoutPct ? "done" : "not yet")}
+      ${activityRing(journalPct, "var(--ochre)", "Journal", journalPct ? "written" : "not yet")}
+    </div>`;
 
   let habitsHtml = "";
   if (feed.habits.length === 0) {
@@ -445,6 +465,7 @@ async function renderToday() {
     : `<button class="empty-state empty-state-tap" data-add="expense">${ICONS.rupee}<span>No expenses today</span><span class="empty-add-hint">Tap to log an expense →</span></button>`;
 
   main.innerHTML = `
+    ${ringsHtml}
     <div class="section-label">Habits</div>
     ${habitsHtml}
     <div class="section-label">Workouts today</div>
@@ -897,6 +918,30 @@ async function renderJournal() {
 }
 
 // ============================================================
+// ACTIVITY RING
+// ============================================================
+function activityRing(pct, color, label, sublabel, size = 68) {
+  const r = (size - 10) / 2;
+  const circ = +(2 * Math.PI * r).toFixed(1);
+  const offset = +(circ * (1 - Math.min(pct, 1))).toFixed(1);
+  return `
+    <div class="activity-ring-wrap">
+      <div class="ring-svg-wrap">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+          <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--hairline)" stroke-width="7"/>
+          <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="7"
+            stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+            stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"
+            style="transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1.56,0.64,1)"/>
+        </svg>
+        <span class="ring-center-text">${pct >= 1 ? "✓" : Math.round(pct*100)+"%"}</span>
+      </div>
+      <span class="ring-label">${label}</span>
+      <span class="ring-sublabel">${sublabel}</span>
+    </div>`;
+}
+
+// ============================================================
 // CHART HELPERS
 // ============================================================
 function barChart(items, labelKey, valueKey, color = "var(--moss)", unit = "") {
@@ -938,6 +983,106 @@ function habitHeatmap(logDates, days = 35) {
     const str = d.toISOString().slice(0, 10);
     return `<div class="heatmap-cell${dateSet.has(str) ? " filled" : ""}" title="${str}"></div>`;
   }).join("")}</div>`;
+}
+
+// ============================================================
+// TASKS TAB — handwritten notepad
+// ============================================================
+function todoItemHtml(t) {
+  return `
+    <div class="todo-item${t.completed ? " done" : ""}" data-id="${t.id}">
+      <button class="todo-check" data-id="${t.id}" data-done="${t.completed}" aria-label="${t.completed ? "Mark undone" : "Mark done"}">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="8" fill="none" stroke="${t.completed ? "var(--moss)" : "var(--ink-soft)"}" stroke-width="1.5"/>
+          ${t.completed ? `<path d="M6 10l3 3 5-6" stroke="var(--moss)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+        </svg>
+      </button>
+      <span class="todo-text">${escapeHtml(t.text)}</span>
+      <button class="todo-delete" data-id="${t.id}" title="Delete">×</button>
+    </div>`;
+}
+
+async function renderTasks() {
+  const main = document.getElementById("main-content");
+  main.innerHTML = `<div class="skeleton-wrap"><div class="skel-card"><div class="skel-line w60"></div><div class="skel-line w80"></div><div class="skel-line w40"></div></div></div>`;
+
+  const todos = await Data.listTodos(currentUser.id);
+  const pending   = todos.filter(t => !t.completed);
+  const completed = todos.filter(t => t.completed);
+
+  main.innerHTML = `
+    <div class="notepad">
+      <div class="notepad-holes">
+        <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      </div>
+      <div class="notepad-body">
+        <div class="todo-add-row">
+          <input id="todo-input" class="todo-input" placeholder="What needs doing?" autocomplete="off" />
+          <button id="todo-add-btn" class="todo-add-btn">Add</button>
+        </div>
+        <div id="todo-list">
+          ${pending.length === 0 && completed.length === 0
+            ? `<p class="todo-empty">All clear! Add your first task above.</p>`
+            : pending.map(todoItemHtml).join("") +
+              (completed.length ? `<div class="todo-done-label">Done</div>` + completed.map(todoItemHtml).join("") : "")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+
+  function rebindTodoEvents() {
+    main.querySelectorAll(".todo-check").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const done = btn.dataset.done === "true";
+        btn.closest(".todo-item").style.opacity = "0.5";
+        await Data.toggleTodo(btn.dataset.id, !done);
+        vibrate([8]);
+        renderTasks();
+      });
+    });
+    main.querySelectorAll(".todo-delete").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        btn.closest(".todo-item").style.transition = "opacity 0.2s";
+        btn.closest(".todo-item").style.opacity = "0";
+        await Data.deleteTodo(btn.dataset.id);
+        setTimeout(() => renderTasks(), 200);
+      });
+    });
+  }
+  rebindTodoEvents();
+
+  const input = document.getElementById("todo-input");
+  const addBtn = document.getElementById("todo-add-btn");
+
+  async function addTodo() {
+    const text = input.value.trim();
+    if (!text) { input.focus(); return; }
+    input.value = "";
+    const { data } = await Data.addTodo(currentUser.id, text);
+    if (data) {
+      const list = document.getElementById("todo-list");
+      const emptyMsg = list.querySelector(".todo-empty");
+      if (emptyMsg) emptyMsg.remove();
+      const el = document.createElement("div");
+      el.innerHTML = todoItemHtml(data);
+      const item = el.firstElementChild;
+      item.style.opacity = "0";
+      item.style.transform = "translateY(-8px)";
+      list.insertBefore(item, list.firstChild);
+      requestAnimationFrame(() => {
+        item.style.transition = "opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)";
+        item.style.opacity = "1";
+        item.style.transform = "translateY(0)";
+      });
+      rebindTodoEvents();
+      vibrate([8]);
+    }
+    input.focus();
+  }
+
+  addBtn.addEventListener("click", addTodo);
+  input.addEventListener("keydown", e => { if (e.key === "Enter") addTodo(); });
 }
 
 // ============================================================

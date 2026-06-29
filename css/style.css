@@ -689,7 +689,7 @@ a { color: inherit; }
   position: absolute;
   top: 0;
   height: 3px;
-  width: 33.333%;
+  width: 25%;
   left: var(--pill-x, 0%);
   background: var(--moss);
   border-radius: 0 0 4px 4px;
@@ -1111,3 +1111,193 @@ a { color: inherit; }
 .heatmap-cell { aspect-ratio: 1; border-radius: 3px; background: var(--hairline); }
 .heatmap-cell.filled { background: var(--moss); }
 [data-theme="dark"] .heatmap-cell.filled { background: var(--moss); opacity: 0.85; }
+
+/* ============================================================
+   ACTIVITY RINGS (Apple Fitness style)
+   ============================================================ */
+.activity-rings-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding: 12px 8px 4px;
+  margin-bottom: 4px;
+}
+.activity-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+.ring-svg-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ring-center-text {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  pointer-events: none;
+}
+.ring-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+}
+.ring-sublabel {
+  font-size: 10px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ============================================================
+   NOTEPAD (Tasks tab)
+   ============================================================ */
+.notepad {
+  background: #FFF9E0;
+  border-radius: 3px 14px 14px 3px;
+  box-shadow: 3px 4px 18px rgba(0,0,0,0.13), 1px 1px 0 rgba(0,0,0,0.06);
+  display: flex;
+  overflow: hidden;
+  min-height: 60vh;
+  animation: fadeSlideUp 0.3s ease both;
+}
+[data-theme="dark"] .notepad {
+  background: #2A2510;
+  box-shadow: 3px 4px 18px rgba(0,0,0,0.4);
+}
+.notepad-holes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 0;
+  gap: 40px;
+  background: #F5E882;
+  width: 32px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .notepad-holes { background: #1E1A08; }
+.hole {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+.notepad-body {
+  flex: 1;
+  padding: 16px 16px 24px;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 31px, rgba(160,180,255,0.18) 32px
+  );
+  background-size: 100% 32px;
+  background-position: 0 14px;
+  position: relative;
+}
+.notepad-body::before {
+  content: "";
+  position: absolute;
+  left: 36px;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(220,80,80,0.22);
+}
+
+/* Todo input */
+.todo-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-left: 8px;
+}
+.todo-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid rgba(0,0,0,0.15);
+  font-family: 'Caveat', cursive;
+  font-size: 20px;
+  color: var(--ink);
+  padding: 4px 0;
+  outline: none;
+}
+[data-theme="dark"] .todo-input { border-bottom-color: rgba(255,255,255,0.15); }
+.todo-input::placeholder { color: var(--ink-soft); opacity: 0.6; }
+.todo-input:focus { border-bottom-color: var(--moss); }
+.todo-add-btn {
+  background: var(--moss);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 14px;
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 600;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.todo-add-btn:active { transform: scale(0.95); opacity: 0.85; }
+
+/* Todo items */
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 6px 8px;
+  transition: opacity 0.2s;
+}
+.todo-check {
+  background: none;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.todo-check:active { transform: scale(0.8); }
+.todo-text {
+  flex: 1;
+  font-family: 'Caveat', cursive;
+  font-size: 21px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.todo-item.done .todo-text {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  color: var(--ink-soft);
+}
+.todo-delete {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 18px;
+  padding: 2px 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.todo-item:hover .todo-delete,
+.todo-item:focus-within .todo-delete { opacity: 1; }
+.todo-done-label {
+  font-family: 'Caveat', cursive;
+  font-size: 14px;
+  color: var(--ink-soft);
+  padding: 12px 0 4px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.todo-empty {
+  font-family: 'Caveat', cursive;
+  font-size: 20px;
+  color: var(--ink-soft);
+  text-align: center;
+  margin: 32px 0;
+  padding-left: 8px;
+}
