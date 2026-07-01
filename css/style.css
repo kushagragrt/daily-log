@@ -1220,7 +1220,7 @@ a { color: inherit; }
   background: transparent;
   border: none;
   border-bottom: 1.5px solid rgba(0,0,0,0.15);
-  font-family: 'Caveat', cursive;
+  font-family: 'Kalam', cursive;
   font-size: 20px;
   color: var(--ink);
   padding: 4px 0;
@@ -1235,7 +1235,7 @@ a { color: inherit; }
   border: none;
   border-radius: 8px;
   padding: 4px 14px;
-  font-family: 'Caveat', cursive;
+  font-family: 'Kalam', cursive;
   font-size: 18px;
   font-weight: 600;
   transition: transform 0.15s, opacity 0.15s;
@@ -1263,7 +1263,7 @@ a { color: inherit; }
 .todo-check:active { transform: scale(0.8); }
 .todo-text {
   flex: 1;
-  font-family: 'Caveat', cursive;
+  font-family: 'Kalam', cursive;
   font-size: 21px;
   color: var(--ink);
   line-height: 1.2;
@@ -1277,16 +1277,15 @@ a { color: inherit; }
   background: none;
   border: none;
   color: var(--ink-soft);
-  font-size: 18px;
+  font-size: 20px;
   padding: 2px 6px;
-  opacity: 0;
-  transition: opacity 0.15s;
   line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.15s;
 }
-.todo-item:hover .todo-delete,
-.todo-item:focus-within .todo-delete { opacity: 1; }
+.todo-delete:active { opacity: 1; }
 .todo-done-label {
-  font-family: 'Caveat', cursive;
+  font-family: 'Kalam', cursive;
   font-size: 14px;
   color: var(--ink-soft);
   padding: 12px 0 4px 8px;
@@ -1294,10 +1293,24 @@ a { color: inherit; }
   letter-spacing: 0.1em;
 }
 .todo-empty {
-  font-family: 'Caveat', cursive;
+  font-family: 'Kalam', cursive;
   font-size: 20px;
   color: var(--ink-soft);
   text-align: center;
   margin: 32px 0;
   padding-left: 8px;
 }
+
+/* --- Card delete button --- */
+.card-delete-btn {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 18px;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.card-delete-btn:active { color: var(--clay); background: var(--clay-bg); }

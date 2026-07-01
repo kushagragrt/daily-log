@@ -413,17 +413,20 @@ async function renderToday() {
               <span class="card-title">${escapeHtml(h.name)}</span>
               ${streakBadge}
             </div>
-            <button class="habit-check${checked ? " is-checked" : ""}" data-habit-id="${h.id}" data-checked="${checked}"
-              aria-label="${checked ? 'Mark not done' : 'Mark done'}">
-              <svg class="check-ring" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--hairline)" stroke-width="2.5"/>
-                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--moss)" stroke-width="2.5"
-                  stroke-dasharray="100.5" stroke-dashoffset="${checked ? 0 : 100.5}"
-                  stroke-linecap="round" transform="rotate(-90 18 18)"
-                  style="transition:stroke-dashoffset 0.5s cubic-bezier(0.34,1.56,0.64,1)"/>
-                ${checked ? `<path d="M11 18l5 5 9-9" stroke="var(--moss)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
-              </svg>
-            </button>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="card-delete-btn habit-delete-btn" data-habit-id="${h.id}" title="Delete habit">×</button>
+              <button class="habit-check${checked ? " is-checked" : ""}" data-habit-id="${h.id}" data-checked="${checked}"
+                aria-label="${checked ? 'Mark not done' : 'Mark done'}">
+                <svg class="check-ring" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="16" fill="none" stroke="var(--hairline)" stroke-width="2.5"/>
+                  <circle cx="18" cy="18" r="16" fill="none" stroke="var(--moss)" stroke-width="2.5"
+                    stroke-dasharray="100.5" stroke-dashoffset="${checked ? 0 : 100.5}"
+                    stroke-linecap="round" transform="rotate(-90 18 18)"
+                    style="transition:stroke-dashoffset 0.5s cubic-bezier(0.34,1.56,0.64,1)"/>
+                  ${checked ? `<path d="M11 18l5 5 9-9" stroke="var(--moss)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+                </svg>
+              </button>
+            </div>
           </div>
           ${squiggleSvg(ratio, "var(--moss)")}
         </div>`;
@@ -445,7 +448,10 @@ async function renderToday() {
               <div class="card-title">${escapeHtml(w.title)}</div>
               <div class="card-sub">${sub}</div>
             </div>
-            <span class="card-tag tag-workout">${isCardio ? "🏃" : "🏋️"}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="card-tag tag-workout">${isCardio ? "🏃" : "🏋️"}</span>
+              <button class="card-delete-btn workout-delete-btn" data-id="${w.id}" title="Delete workout">×</button>
+            </div>
           </div>
         </div>`;
       }).join("")
@@ -459,7 +465,10 @@ async function renderToday() {
               <div class="card-title">${escapeHtml(e.note) || escapeHtml(e.category)}</div>
               <div class="card-sub">${escapeHtml(e.category)}</div>
             </div>
-            <span class="card-tag tag-expense">₹${Number(e.amount).toLocaleString()}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="card-tag tag-expense">₹${Number(e.amount).toLocaleString()}</span>
+              <button class="card-delete-btn expense-delete-btn" data-id="${e.id}" title="Delete expense">×</button>
+            </div>
           </div>
         </div>`).join("")
     : `<button class="empty-state empty-state-tap" data-add="expense">${ICONS.rupee}<span>No expenses today</span><span class="empty-add-hint">Tap to log an expense →</span></button>`;
@@ -476,6 +485,33 @@ async function renderToday() {
 
   main.querySelectorAll(".empty-state-tap").forEach(btn => {
     btn.addEventListener("click", () => openAddSheet(btn.dataset.add));
+  });
+
+  main.querySelectorAll(".habit-delete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this habit? Your streak history will be lost.")) return;
+      await Data.archiveHabit(btn.dataset.habitId);
+      showToast("Habit deleted");
+      renderToday();
+    });
+  });
+
+  main.querySelectorAll(".workout-delete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this workout?")) return;
+      await Data.deleteWorkout(btn.dataset.id);
+      showToast("Workout deleted");
+      renderToday();
+    });
+  });
+
+  main.querySelectorAll(".expense-delete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this expense?")) return;
+      await Data.deleteExpense(btn.dataset.id);
+      showToast("Expense deleted");
+      renderToday();
+    });
   });
 
   main.querySelectorAll(".habit-check").forEach(btn => {
@@ -1058,8 +1094,17 @@ async function renderTasks() {
   async function addTodo() {
     const text = input.value.trim();
     if (!text) { input.focus(); return; }
+    addBtn.textContent = "…";
+    addBtn.disabled = true;
+    const { data, error } = await Data.addTodo(currentUser.id, text);
+    addBtn.textContent = "Add";
+    addBtn.disabled = false;
+    if (error) {
+      showToast("❌ " + (error.message || "Could not add task — did you run the Supabase SQL?"));
+      console.error("Todo add error:", error);
+      return;
+    }
     input.value = "";
-    const { data } = await Data.addTodo(currentUser.id, text);
     if (data) {
       const list = document.getElementById("todo-list");
       const emptyMsg = list.querySelector(".todo-empty");
